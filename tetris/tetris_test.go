@@ -74,6 +74,17 @@ func TestMoveActions(t *testing.T) {
 			action:     func(g *Game) { g.Down() },
 			updateGrid: func(g *Game) { g.Grid[17][3] = "used" },
 		},
+		{
+			name:         "Rotate when unblocked",
+			action:       func(g *Game) { g.Rotate() },
+			wantUpdate:   true,
+			wantLocation: []int{19, 3},
+		},
+		{
+			name:       "Rotate when blcoked",
+			action:     func(g *Game) { g.Rotate() },
+			updateGrid: func(g *Game) { g.Grid[19][4] = "used" },
+		},
 	}
 
 	for _, tt := range tests {

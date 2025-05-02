@@ -83,12 +83,14 @@ func (g *Game) Rotate() {
 		return
 	}
 
+	// copies the grid from the current tetromino to test for collisions
 	test := make([][]bool, len(g.CurrentTetromino.Grid))
 	for i := range g.CurrentTetromino.Grid {
 		test[i] = make([]bool, len(g.CurrentTetromino.Grid[i]))
 		copy(test[i], g.CurrentTetromino.Grid[i])
 	}
 
+	// rotates the grid clockwise
 	for ir, r := range g.CurrentTetromino.Grid {
 		col := len(r) - ir - 1
 		for ic, c := range r {
@@ -96,7 +98,17 @@ func (g *Game) Rotate() {
 		}
 	}
 
-	g.CurrentTetromino.Grid = test
+	testTetromino := &Tetromino{
+		Grid: test,
+		X:    g.CurrentTetromino.X,
+		Y:    g.CurrentTetromino.Y,
+	}
+
+	// TODO: implement wall kicks
+	if !g.isCollision(0, 0, testTetromino) {
+		g.CurrentTetromino.Grid = test
+		g.Update <- true
+	}
 }
 
 func (g *Game) isCollision(x, y int, t *Tetromino) bool {
