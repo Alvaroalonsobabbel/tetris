@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-func TestGrid(t *testing.T) {
-	t.Run("New game starts with empty grid", func(t *testing.T) {
+func TestStack(t *testing.T) {
+	t.Run("New game starts with empty stack", func(t *testing.T) {
 		game := New()
-		for _, c := range game.Grid {
+		for _, c := range game.Stack {
 			for _, r := range c {
 				if r != "" {
 					t.Errorf("Expected cell to be an empty string, got %v", r)
@@ -23,7 +23,7 @@ func TestGrid(t *testing.T) {
 func TestIsCollision(t *testing.T) {
 	game := New()
 	game.CurrentTetromino = newJ()
-	game.Grid[17][5] = "used"
+	game.Stack[17][5] = "used"
 
 	if game.isCollision(0, 0, game.CurrentTetromino) {
 		t.Errorf("Expected no collision")
@@ -37,7 +37,7 @@ func TestMoveActions(t *testing.T) {
 	tests := []struct {
 		name         string
 		action       func(g *Game)
-		updateGrid   func(g *Game) // allows you to modify the grid to generate a collision
+		updateStack  func(g *Game) // allows you to modify the stack to generate a collision
 		wantUpdate   bool
 		wantLocation []int // x, y
 	}{
@@ -48,9 +48,9 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{19, 2},
 		},
 		{
-			name:       "Move left blocked",
-			action:     func(g *Game) { g.Left() },
-			updateGrid: func(g *Game) { g.Grid[18][2] = "used" },
+			name:        "Move left blocked",
+			action:      func(g *Game) { g.Left() },
+			updateStack: func(g *Game) { g.Stack[18][2] = "used" },
 		},
 		{
 			name:         "Move right unblocked",
@@ -59,9 +59,9 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{19, 4},
 		},
 		{
-			name:       "Move right blocked",
-			action:     func(g *Game) { g.Right() },
-			updateGrid: func(g *Game) { g.Grid[18][6] = "used" },
+			name:        "Move right blocked",
+			action:      func(g *Game) { g.Right() },
+			updateStack: func(g *Game) { g.Stack[18][6] = "used" },
 		},
 		{
 			name:         "Move down unblocked",
@@ -70,9 +70,9 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{18, 3},
 		},
 		{
-			name:       "Move down blocked",
-			action:     func(g *Game) { g.Down() },
-			updateGrid: func(g *Game) { g.Grid[17][3] = "used" },
+			name:        "Move down blocked",
+			action:      func(g *Game) { g.Down() },
+			updateStack: func(g *Game) { g.Stack[17][3] = "used" },
 		},
 		{
 			name:         "Rotate when unblocked",
@@ -81,9 +81,9 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{19, 3},
 		},
 		{
-			name:       "Rotate when blcoked",
-			action:     func(g *Game) { g.Rotate() },
-			updateGrid: func(g *Game) { g.Grid[19][4] = "used" },
+			name:        "Rotate when blcoked",
+			action:      func(g *Game) { g.Rotate() },
+			updateStack: func(g *Game) { g.Stack[19][4] = "used" },
 		},
 	}
 
@@ -95,8 +95,8 @@ func TestMoveActions(t *testing.T) {
 			defer func() { close(game.Update) }()
 			game.CurrentTetromino = newJ()
 
-			if tt.updateGrid != nil {
-				tt.updateGrid(game)
+			if tt.updateStack != nil {
+				tt.updateStack(game)
 			}
 
 			var wg sync.WaitGroup

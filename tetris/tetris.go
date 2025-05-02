@@ -6,16 +6,16 @@ import (
 	"time"
 )
 
-var emptyGrid = [20][10]string{}
+var emptyStack = [20][10]string{}
 
 type Game struct {
 	ticker *time.Ticker
 
-	// Grid is the playfield. 20 rows x 10 columns.
+	// Stack is the playfield. 20 rows x 10 columns.
 	// Columns are 0 > 9 left to right and represent the X axis
 	// Rows are 19 > 0 top to bottom and represent the Y axis
 	// An empty string is an empty cell. Otherwise it has the color it will be rendered with.
-	Grid [20][10]string
+	Stack [20][10]string
 
 	CurrentTetromino *Tetromino
 	NexTetromino     *Tetromino
@@ -29,7 +29,7 @@ type Game struct {
 
 func New() *Game {
 	return &Game{
-		Grid:     emptyGrid,
+		Stack:    emptyStack,
 		Level:    1,
 		GameOver: make(chan bool),
 		Update:   make(chan bool),
@@ -42,7 +42,7 @@ func (g *Game) Start() {
 		for range g.ticker.C {
 			if g.isCollision(0, -1, g.CurrentTetromino) {
 				g.ticker.Stop()
-				// transfer Current Tetromino to Grid
+				// transfer Current Tetromino to Stack
 				// copy NextTetromino to CurrentTetromino
 				// check for game over?
 				// draft a NextTetromino
@@ -113,7 +113,7 @@ func (g *Game) Rotate() {
 
 func (g *Game) isCollision(x, y int, t *Tetromino) bool {
 	// isCollision() will receive the desired future row and col tetromino's position
-	// and calculate if there is a collision or if it's out of bounds from the grid
+	// and calculate if there is a collision or if it's out of bounds from the stack
 	//
 	// 		0 1 2 3 4 5 6 7 8 9			0 1 2
 	// 19	X X X O X X X X X X		0	O X X
@@ -123,14 +123,14 @@ func (g *Game) isCollision(x, y int, t *Tetromino) bool {
 		for ic, c := range r {
 			// we check only if the tetromino cell is true
 			if c {
-				// the position of the tetromino cell against the grid is:
-				// current Row and Col + cell index offset + desired position offset
-				// rows decrease to 0 so we need to substract the index
+				// the position of the tetromino cell against the stack is:
+				// current X and Y + cell index offset + desired position offset
+				// Y axis decrease to 0 so we need to substract the index
 				yPos := t.Y - ir + y
 				xPos := t.X + ic + x
 
-				// check if the cell is out of bounds for the row and col and if the grid's cell is empty
-				if yPos < 0 || yPos > 19 || xPos < 0 || xPos >= len(g.Grid[0]) || g.Grid[yPos][xPos] != "" {
+				// check if the cell is out of bounds for the X and Y and if the stack's cell is empty
+				if yPos < 0 || yPos > 19 || xPos < 0 || xPos >= len(g.Stack[0]) || g.Stack[yPos][xPos] != "" {
 					return true
 				}
 			}
@@ -141,7 +141,7 @@ func (g *Game) isCollision(x, y int, t *Tetromino) bool {
 
 func setTime(level int) time.Duration {
 	// setTime() sets the duration for the ticker that will progress the
-	// tetromino further down the grid. Based on https://tetris.wiki/Marathon
+	// tetromino further down the stack. Based on https://tetris.wiki/Marathon
 	switch {
 	case level < 1:
 		level = 1
