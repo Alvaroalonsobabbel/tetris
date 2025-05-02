@@ -146,3 +146,20 @@ func TestRotation(t *testing.T) {
 		t.Errorf("wanted %v, got %v", wantGrid, game.CurrentTetromino.Grid)
 	}
 }
+
+func TestToStack(t *testing.T) {
+	game := New()
+	defer func() { close(game.Update) }()
+	game.CurrentTetromino = newJ()
+
+	game.toStack()
+	wantStack := emptyStack
+	wantStack[19][3] = "J"
+	wantStack[18][3] = "J"
+	wantStack[18][4] = "J"
+	wantStack[18][5] = "J"
+
+	if !reflect.DeepEqual(game.Stack, wantStack) {
+		t.Errorf("wanted %v, got %v", wantStack, game.Stack)
+	}
+}

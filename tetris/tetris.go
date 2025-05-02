@@ -42,7 +42,7 @@ func (g *Game) Start() {
 		for range g.ticker.C {
 			if g.isCollision(0, -1, g.CurrentTetromino) {
 				g.ticker.Stop()
-				// transfer Current Tetromino to Stack
+				g.toStack()
 				// copy NextTetromino to CurrentTetromino
 				// check for game over?
 				// draft a NextTetromino
@@ -137,6 +137,16 @@ func (g *Game) isCollision(x, y int, t *Tetromino) bool {
 		}
 	}
 	return false
+}
+
+func (g *Game) toStack() {
+	for iy, y := range g.CurrentTetromino.Grid {
+		for ix, x := range y {
+			if x {
+				g.Stack[g.CurrentTetromino.Y-iy][ix+g.CurrentTetromino.X] = g.CurrentTetromino.Shape
+			}
+		}
+	}
 }
 
 func setTime(level int) time.Duration {
