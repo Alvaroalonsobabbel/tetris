@@ -1,6 +1,7 @@
 package tetris
 
 import (
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -32,7 +33,7 @@ func TestIsCollision(t *testing.T) {
 	}
 }
 
-func TestActions(t *testing.T) {
+func TestMoveActions(t *testing.T) {
 	tests := []struct {
 		name         string
 		action       func(g *Game)
@@ -116,5 +117,21 @@ func TestActions(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRotation(t *testing.T) {
+	game := New()
+	defer func() { close(game.Update) }()
+	game.CurrentTetromino = newJ()
+
+	wantGrid := [][]bool{
+		{false, true, true},
+		{false, true, false},
+		{false, true, false},
+	}
+	game.Rotate()
+	if !reflect.DeepEqual(game.CurrentTetromino.Grid, wantGrid) {
+		t.Errorf("wanted %v, got %v", wantGrid, game.CurrentTetromino.Grid)
 	}
 }

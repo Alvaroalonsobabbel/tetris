@@ -76,6 +76,27 @@ func (g *Game) Down() {
 	}
 }
 
+func (g *Game) Rotate() {
+	if g.CurrentTetromino.Shape == "O" {
+		// the O shape doesn't rotate.
+		return
+	}
+
+	new := make([][]bool, len(g.CurrentTetromino.Grid))
+	for i := range g.CurrentTetromino.Grid {
+		new[i] = make([]bool, len(g.CurrentTetromino.Grid[i]))
+		copy(new[i], g.CurrentTetromino.Grid[i])
+	}
+
+	for ir, r := range g.CurrentTetromino.Grid {
+		col := len(r) - ir - 1
+		for ic, c := range r {
+			new[ic][col] = c
+		}
+	}
+	g.CurrentTetromino.Grid = new
+}
+
 func (g *Game) isCollision(row, col int) bool {
 	// isCollision() will receive the desired future row and col tetromino's position
 	// and calculate if there is a collision or if it's out of bounds from the grid
