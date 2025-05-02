@@ -2,8 +2,8 @@ package tetris
 
 type Tetromino struct {
 	Grid  [][]bool
-	Col   int
-	Row   int
+	X     int
+	Y     int
 	Shape string
 }
 
@@ -27,8 +27,8 @@ func newI() *Tetromino {
 			{true, true, true},
 			{true, true, true},
 		},
-		Col:   3,
-		Row:   20,
+		X:     3,
+		Y:     20,
 		Shape: "I",
 	}
 }
@@ -51,8 +51,8 @@ func newJ() *Tetromino {
 			{true, true, true},
 			{false, false, false},
 		},
-		Col:   3,
-		Row:   19,
+		X:     3,
+		Y:     19,
 		Shape: "J",
 	}
 }
@@ -75,8 +75,8 @@ func newL() *Tetromino {
 			{true, true, true},
 			{false, false, false},
 		},
-		Col:   3,
-		Row:   19,
+		X:     3,
+		Y:     19,
 		Shape: "L",
 	}
 }
@@ -96,8 +96,8 @@ func newO() *Tetromino {
 			{true, true},
 			{true, true},
 		},
-		Col:   4,
-		Row:   19,
+		X:     4,
+		Y:     19,
 		Shape: "O",
 	}
 }
@@ -120,8 +120,8 @@ func newS() *Tetromino {
 			{true, true, false},
 			{false, false, false},
 		},
-		Col:   3,
-		Row:   19,
+		X:     3,
+		Y:     19,
 		Shape: "S",
 	}
 }
@@ -144,8 +144,8 @@ func newZ() *Tetromino {
 			{false, true, true},
 			{false, false, false},
 		},
-		Col:   3,
-		Row:   19,
+		X:     3,
+		Y:     19,
 		Shape: "Z",
 	}
 }
@@ -168,8 +168,8 @@ func newT() *Tetromino {
 			{true, true, true},
 			{false, false, false},
 		},
-		Col:   3,
-		Row:   19,
+		X:     3,
+		Y:     19,
 		Shape: "T",
 	}
 }

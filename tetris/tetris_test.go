@@ -109,11 +109,11 @@ func TestMoveActions(t *testing.T) {
 
 			if tt.wantUpdate {
 				// we expect the tetromino's location to have been updated
-				if game.CurrentTetromino.Row != tt.wantLocation[0] {
-					t.Errorf("wanted tetromino's row to be %d, got %d", tt.wantLocation[0], game.CurrentTetromino.Row)
+				if game.CurrentTetromino.Y != tt.wantLocation[0] {
+					t.Errorf("wanted tetromino's row to be %d, got %d", tt.wantLocation[0], game.CurrentTetromino.Y)
 				}
-				if game.CurrentTetromino.Col != tt.wantLocation[1] {
-					t.Errorf("wanted tetromino's col to be %d, got %d", tt.wantLocation[1], game.CurrentTetromino.Col)
+				if game.CurrentTetromino.X != tt.wantLocation[1] {
+					t.Errorf("wanted tetromino's col to be %d, got %d", tt.wantLocation[1], game.CurrentTetromino.X)
 				}
 			}
 		})

@@ -12,8 +12,8 @@ type Game struct {
 	ticker *time.Ticker
 
 	// Grid is the playfield. 20 rows x 10 columns.
-	// Columns are 0 > 9 left to right
-	// Rows are 19 > 0 top to bottom
+	// Columns are 0 > 9 left to right and represent the X axis
+	// Rows are 19 > 0 top to bottom and represent the Y axis
 	// An empty string is an empty cell. Otherwise it has the color it will be rendered with.
 	Grid [20][10]string
 
@@ -49,7 +49,7 @@ func (g *Game) Start() {
 				// clear lines?
 				// reset ticker?
 			} else {
-				g.CurrentTetromino.Row--
+				g.CurrentTetromino.Y--
 			}
 		}
 	}()
@@ -57,21 +57,21 @@ func (g *Game) Start() {
 
 func (g *Game) Left() {
 	if !g.isCollision(0, -1) {
-		g.CurrentTetromino.Col--
+		g.CurrentTetromino.X--
 		g.Update <- true
 	}
 }
 
 func (g *Game) Right() {
 	if !g.isCollision(0, 1) {
-		g.CurrentTetromino.Col++
+		g.CurrentTetromino.X++
 		g.Update <- true
 	}
 }
 
 func (g *Game) Down() {
 	if !g.isCollision(-1, 0) {
-		g.CurrentTetromino.Row--
+		g.CurrentTetromino.Y--
 		g.Update <- true
 	}
 }
@@ -97,7 +97,7 @@ func (g *Game) Rotate() {
 	g.CurrentTetromino.Grid = new
 }
 
-func (g *Game) isCollision(row, col int) bool {
+func (g *Game) isCollision(y, x int) bool {
 	// isCollision() will receive the desired future row and col tetromino's position
 	// and calculate if there is a collision or if it's out of bounds from the grid
 	//
@@ -112,11 +112,11 @@ func (g *Game) isCollision(row, col int) bool {
 				// the position of the tetromino cell against the grid is:
 				// current Row and Col + cell index offset + desired position offset
 				// rows decrease to 0 so we need to substract the index
-				rowPos := g.CurrentTetromino.Row - ir + row
-				colPos := g.CurrentTetromino.Col + ic + col
+				yPos := g.CurrentTetromino.Y - ir + y
+				xPos := g.CurrentTetromino.X + ic + x
 
 				// check if the cell is out of bounds for the row and col and if the grid is cell is empty
-				if rowPos < 0 || colPos < 0 || colPos >= len(g.Grid[0]) || g.Grid[rowPos][colPos] != "" {
+				if yPos < 0 || xPos < 0 || xPos >= len(g.Grid[0]) || g.Grid[yPos][xPos] != "" {
 					return true
 				}
 			}
