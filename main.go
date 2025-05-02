@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
+	"tetris/tetris"
 	"text/template"
 
 	"golang.org/x/term"
@@ -39,8 +41,26 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// listen to keyboard input
-	// start tetris
+	var gw sync.WaitGroup
+	gw.Add(1)
+	tetris := tetris.New()
+	go func() {
+		for {
+			select {
+			case <-tetris.Update:
+			// update ui
+			// 	fmt.Print(resetCursorPos)
+			// 	if err := t.Execute(os.Stdout, tetris); err != nil {
+			// 		log.Fatal(err)
+			// 	}
+			case <-tetris.GameOver:
+				gw.Done()
+				// finish game
+			}
+		}
+	}()
+	tetris.Start()
+	gw.Wait()
 
 	// for  {
 	// 	fmt.Print(resetCursorPos)
