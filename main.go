@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"sync"
 	"tetris/tetris"
-	"text/template"
 
 	"golang.org/x/term"
 )
@@ -32,14 +30,14 @@ const (
 var layout string
 
 func main() {
-	restore := startRawConsole()
-	defer restore()
+	// restore := startRawConsole()
+	// defer restore()
 
-	layoutWithCR := strings.ReplaceAll(layout, "\n", "\r\n")
-	_, err := template.New("layout").Parse(layoutWithCR)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// layoutWithCR := strings.ReplaceAll(layout, "\n", "\r\n")
+	// _, err := template.New("layout").Parse(layoutWithCR)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	var gw sync.WaitGroup
 	gw.Add(1)
@@ -48,12 +46,14 @@ func main() {
 		for {
 			select {
 			case <-tetris.Update:
+				fmt.Println(tetris)
 			// update ui
 			// 	fmt.Print(resetCursorPos)
 			// 	if err := t.Execute(os.Stdout, tetris); err != nil {
 			// 		log.Fatal(err)
 			// 	}
 			case <-tetris.GameOver:
+				fmt.Println("game over!")
 				gw.Done()
 				// finish game
 			}

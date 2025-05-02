@@ -38,18 +38,21 @@ func New() *Game {
 
 func (g *Game) Start() {
 	g.ticker = time.NewTicker(setTime(g.Level))
+	g.CurrentTetromino = newJ()
+	// check for game over?
+	// draft a NextTetromino
+	// copy NextTetromino to CurrentTetromino
 	go func() {
 		for range g.ticker.C {
 			if g.isCollision(0, -1, g.CurrentTetromino) {
 				g.ticker.Stop()
 				g.toStack()
-				// copy NextTetromino to CurrentTetromino
-				// check for game over?
-				// draft a NextTetromino
+				g.Update <- true
+				g.Start()
 				// clear lines?
-				// reset ticker?
 			} else {
 				g.CurrentTetromino.Y--
+				g.Update <- true
 			}
 		}
 	}()
