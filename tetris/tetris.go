@@ -40,7 +40,7 @@ func (g *Game) Start() {
 	g.ticker = time.NewTicker(setTime(g.Level))
 	go func() {
 		for range g.ticker.C {
-			if g.isCollision(-1, 0) {
+			if g.isCollision(0, -1, g.CurrentTetromino) {
 				g.ticker.Stop()
 				// transfer Current Tetromino to Grid
 				// copy NextTetromino to CurrentTetromino
@@ -56,48 +56,50 @@ func (g *Game) Start() {
 }
 
 func (g *Game) Left() {
-	if !g.isCollision(0, -1) {
+	if !g.isCollision(-1, 0, g.CurrentTetromino) {
 		g.CurrentTetromino.X--
 		g.Update <- true
 	}
 }
 
 func (g *Game) Right() {
-	if !g.isCollision(0, 1) {
+	if !g.isCollision(1, 0, g.CurrentTetromino) {
 		g.CurrentTetromino.X++
 		g.Update <- true
 	}
 }
 
 func (g *Game) Down() {
-	if !g.isCollision(-1, 0) {
+	if !g.isCollision(0, -1, g.CurrentTetromino) {
 		g.CurrentTetromino.Y--
 		g.Update <- true
 	}
 }
 
+// Rotate() rotates the tetromino clockwise.
 func (g *Game) Rotate() {
 	if g.CurrentTetromino.Shape == "O" {
 		// the O shape doesn't rotate.
 		return
 	}
 
-	new := make([][]bool, len(g.CurrentTetromino.Grid))
+	test := make([][]bool, len(g.CurrentTetromino.Grid))
 	for i := range g.CurrentTetromino.Grid {
-		new[i] = make([]bool, len(g.CurrentTetromino.Grid[i]))
-		copy(new[i], g.CurrentTetromino.Grid[i])
+		test[i] = make([]bool, len(g.CurrentTetromino.Grid[i]))
+		copy(test[i], g.CurrentTetromino.Grid[i])
 	}
 
 	for ir, r := range g.CurrentTetromino.Grid {
 		col := len(r) - ir - 1
 		for ic, c := range r {
-			new[ic][col] = c
+			test[ic][col] = c
 		}
 	}
-	g.CurrentTetromino.Grid = new
+
+	g.CurrentTetromino.Grid = test
 }
 
-func (g *Game) isCollision(y, x int) bool {
+func (g *Game) isCollision(x, y int, t *Tetromino) bool {
 	// isCollision() will receive the desired future row and col tetromino's position
 	// and calculate if there is a collision or if it's out of bounds from the grid
 	//
@@ -105,18 +107,18 @@ func (g *Game) isCollision(y, x int) bool {
 	// 19	X X X O X X X X X X		0	O X X
 	// 18	X X X O O O X X X X		1	O O O
 	// 17	X X X X X X X X X X		2	X X X
-	for ir, r := range g.CurrentTetromino.Grid {
+	for ir, r := range t.Grid {
 		for ic, c := range r {
 			// we check only if the tetromino cell is true
 			if c {
 				// the position of the tetromino cell against the grid is:
 				// current Row and Col + cell index offset + desired position offset
 				// rows decrease to 0 so we need to substract the index
-				yPos := g.CurrentTetromino.Y - ir + y
-				xPos := g.CurrentTetromino.X + ic + x
+				yPos := t.Y - ir + y
+				xPos := t.X + ic + x
 
-				// check if the cell is out of bounds for the row and col and if the grid is cell is empty
-				if yPos < 0 || xPos < 0 || xPos >= len(g.Grid[0]) || g.Grid[yPos][xPos] != "" {
+				// check if the cell is out of bounds for the row and col and if the grid's cell is empty
+				if yPos < 0 || yPos > 19 || xPos < 0 || xPos >= len(g.Grid[0]) || g.Grid[yPos][xPos] != "" {
 					return true
 				}
 			}

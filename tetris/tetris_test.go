@@ -25,10 +25,10 @@ func TestIsCollision(t *testing.T) {
 	game.CurrentTetromino = newJ()
 	game.Grid[17][5] = "used"
 
-	if game.isCollision(0, 0) {
+	if game.isCollision(0, 0, game.CurrentTetromino) {
 		t.Errorf("Expected no collision")
 	}
-	if !game.isCollision(-1, 0) {
+	if !game.isCollision(0, -1, game.CurrentTetromino) {
 		t.Errorf("Expected collision")
 	}
 }
@@ -37,8 +37,9 @@ func TestMoveActions(t *testing.T) {
 	tests := []struct {
 		name         string
 		action       func(g *Game)
+		updateGrid   func(g *Game) // allows you to modify the grid to generate a collision
 		wantUpdate   bool
-		wantLocation []int // row, col
+		wantLocation []int // x, y
 	}{
 		{
 			name:         "Move left unblocked",
@@ -47,8 +48,9 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{19, 2},
 		},
 		{
-			name:   "Move left blocked",
-			action: func(g *Game) { g.Left() },
+			name:       "Move left blocked",
+			action:     func(g *Game) { g.Left() },
+			updateGrid: func(g *Game) { g.Grid[18][2] = "used" },
 		},
 		{
 			name:         "Move right unblocked",
@@ -57,8 +59,9 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{19, 4},
 		},
 		{
-			name:   "Move right blocked",
-			action: func(g *Game) { g.Right() },
+			name:       "Move right blocked",
+			action:     func(g *Game) { g.Right() },
+			updateGrid: func(g *Game) { g.Grid[18][6] = "used" },
 		},
 		{
 			name:         "Move down unblocked",
@@ -67,28 +70,25 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{18, 3},
 		},
 		{
-			name:   "Move down blocked",
-			action: func(g *Game) { g.Down() },
+			name:       "Move down blocked",
+			action:     func(g *Game) { g.Down() },
+			updateGrid: func(g *Game) { g.Grid[17][3] = "used" },
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			var wg sync.WaitGroup
+
 			game := New()
 			defer func() { close(game.Update) }()
 			game.CurrentTetromino = newJ()
 
-			if !tt.wantUpdate {
-				// this means the next move of the tetromino will
-				// be a collision so we don't expect an update.
-				// for this we block the grid in all directions
-				game.Grid[18][2] = "used"
-				game.Grid[18][6] = "used"
-				game.Grid[17][3] = "used"
+			if tt.updateGrid != nil {
+				tt.updateGrid(game)
 			}
 
+			var wg sync.WaitGroup
 			go func() {
 				select {
 				case <-game.Update:
