@@ -3,6 +3,7 @@
 package tetris
 
 import (
+	"math"
 	"time"
 )
 
@@ -155,11 +156,16 @@ func (g *Game) toStack() {
 func setTime(level int) time.Duration {
 	// setTime() sets the duration for the ticker that will progress the
 	// tetromino further down the stack. Based on https://tetris.wiki/Marathon
+	//
+	// Time = (0.8-((Level-1)*0.007))^(Level-1)
+
 	switch {
 	case level < 1:
 		level = 1
 	case level > 20:
 		level = 20
 	}
-	return (800*time.Millisecond - (time.Duration(level-1) * 7 * time.Millisecond))
+	seconds := math.Pow(0.8-float64(level-1)*0.007, float64(level-1))
+
+	return time.Duration(seconds * float64(time.Second))
 }
