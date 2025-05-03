@@ -59,6 +59,7 @@ func (g *Game) Start() {
 	}()
 }
 
+// Moves the Tetromino one step to the left.
 func (g *Game) Left() {
 	if !g.isCollision(-1, 0, g.CurrentTetromino) {
 		g.CurrentTetromino.X--
@@ -66,6 +67,7 @@ func (g *Game) Left() {
 	}
 }
 
+// Moves the Tetromino one step to the right.
 func (g *Game) Right() {
 	if !g.isCollision(1, 0, g.CurrentTetromino) {
 		g.CurrentTetromino.X++
@@ -73,6 +75,7 @@ func (g *Game) Right() {
 	}
 }
 
+// Moves the Tetromino one step down.
 func (g *Game) Down() {
 	if !g.isCollision(0, -1, g.CurrentTetromino) {
 		g.CurrentTetromino.Y--
@@ -80,7 +83,7 @@ func (g *Game) Down() {
 	}
 }
 
-// Rotate() rotates the tetromino clockwise.
+// Rotates the tetromino clockwise.
 func (g *Game) Rotate() {
 	if g.CurrentTetromino.Shape == "O" {
 		// the O shape doesn't rotate.
