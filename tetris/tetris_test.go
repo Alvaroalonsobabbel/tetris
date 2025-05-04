@@ -201,7 +201,7 @@ func TestRotation(t *testing.T) {
 func TestToStack(t *testing.T) {
 	game := NewTestGame(J)
 	game.toStack()
-	wantStack := emptyStack
+	wantStack := emptyStack()
 	wantStack[19][3] = J
 	wantStack[18][3] = J
 	wantStack[18][4] = J
@@ -252,5 +252,4 @@ func TestRandomBag(t *testing.T) {
 			t.Errorf("wanted bag to have 6 pieces, got %d", len(bag.bag))
 		}
 	})
-
 }

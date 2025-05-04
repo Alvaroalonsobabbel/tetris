@@ -19,7 +19,15 @@ import (
 	"time"
 )
 
-var emptyStack = [20][10]Shape{}
+// var emptyStack = [20][10]Shape{}
+
+func emptyStack() [][]Shape {
+	e := make([][]Shape, 20)
+	for i := range e {
+		e[i] = make([]Shape, 10)
+	}
+	return e
+}
 
 type Game struct {
 	ticker *time.Ticker
@@ -29,7 +37,7 @@ type Game struct {
 	// Columns are 0 > 9 left to right and represent the X axis
 	// Rows are 19 > 0 top to bottom and represent the Y axis
 	// An empty string is an empty cell. Otherwise it has the color it will be rendered with.
-	Stack [20][10]Shape
+	Stack [][]Shape
 
 	Tetromino    *Tetromino
 	NexTetromino *Tetromino
@@ -43,7 +51,7 @@ type Game struct {
 
 func NewGame() *Game {
 	return &Game{
-		Stack:    emptyStack,
+		Stack:    emptyStack(),
 		Level:    1,
 		GameOver: make(chan bool),
 		Update:   make(chan bool),
@@ -55,7 +63,7 @@ func NewGame() *Game {
 func NewTestGame(shape Shape) *Game {
 	return &Game{
 		Tetromino: shapeMap[shape](),
-		Stack:     emptyStack,
+		Stack:     emptyStack(),
 		Level:     1,
 		GameOver:  make(chan bool),
 		Update:    make(chan bool),
@@ -72,9 +80,10 @@ func (g *Game) Start() {
 	go func() {
 		for range g.ticker.C {
 			if g.isCollision(0, -1, g.Tetromino) {
+				g.ticker.Stop()
 				g.toStack()
 				g.Update <- true
-				g.ticker.Stop()
+
 				g.Start()
 				// clear lines?
 			} else {
