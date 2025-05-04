@@ -12,7 +12,7 @@ type Tetromino struct {
 
 .	0 1 2 3 4 5 6 7 8 9		.	0 1 2 3
 
-19	X X X X X X X X X X		0	X X X X
+19	X X X O O O O X X X		0	X X X X
 
 18	X X X X X X X X X X		1	O O O O
 
@@ -23,9 +23,10 @@ type Tetromino struct {
 func newI() *Tetromino {
 	return &Tetromino{
 		Grid: [][]bool{
-			{true, true, true},
-			{true, true, true},
-			{true, true, true},
+			{false, false, false, false},
+			{true, true, true, true},
+			{false, false, false, false},
+			{false, false, false, false},
 		},
 		X:     3,
 		Y:     20,
