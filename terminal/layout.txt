@@ -1,0 +1,7 @@
+{{- $root := . -}}
++--------------------+{{range $ix, $row := renderStack .}}
+|{{range $iy, $cell := $row}}{{$cell}}{{end}}|
+{{- if eq $ix 5}}               Level: {{$root.Level}}{{- end -}}
+{{- if eq $ix 6}}       Lines Cleared: {{$root.LinesClear}}{{- end -}}
+{{end}}
++--------------------+
