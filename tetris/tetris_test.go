@@ -83,9 +83,8 @@ func TestIsCollision(t *testing.T) {
 
 func TestMoveActions(t *testing.T) {
 	tests := []struct {
-		name         string
-		action       func(g *Game)
-		updateStack  func(g *Game) // allows you to modify the stack to generate a collision
+		name   string
+		action func(g *Game)
 		wantUpdate   bool
 		wantLocation []int // x, y
 	}{
@@ -96,9 +95,11 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{19, 2},
 		},
 		{
-			name:        "Move left blocked",
-			action:      func(g *Game) { g.Left() },
-			updateStack: func(g *Game) { g.Stack[18][2] = "used" },
+			name: "Move left blocked",
+			action: func(g *Game) {
+				g.Stack[18][2] = "used"
+				g.Left()
+			},
 		},
 		{
 			name:         "Move right unblocked",
@@ -107,9 +108,11 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{19, 4},
 		},
 		{
-			name:        "Move right blocked",
-			action:      func(g *Game) { g.Right() },
-			updateStack: func(g *Game) { g.Stack[18][6] = "used" },
+			name: "Move right blocked",
+			action: func(g *Game) {
+				g.Stack[18][6] = "used"
+				g.Right()
+			},
 		},
 		{
 			name:         "Move down unblocked",
@@ -118,9 +121,11 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{18, 3},
 		},
 		{
-			name:        "Move down blocked",
-			action:      func(g *Game) { g.Down() },
-			updateStack: func(g *Game) { g.Stack[17][3] = "used" },
+			name: "Move down blocked",
+			action: func(g *Game) {
+				g.Stack[17][3] = "used"
+				g.Down()
+			},
 		},
 		{
 			name:         "Rotate when unblocked",
@@ -129,9 +134,11 @@ func TestMoveActions(t *testing.T) {
 			wantLocation: []int{19, 3},
 		},
 		{
-			name:        "Rotate when blcoked",
-			action:      func(g *Game) { g.Rotate() },
-			updateStack: func(g *Game) { g.Stack[19][4] = "used" },
+			name: "Rotate when blcoked",
+			action: func(g *Game) {
+				g.Stack[19][4] = "used"
+				g.Rotate()
+			},
 		},
 		{
 			name:         "Drop moves down until blocked",
@@ -144,14 +151,9 @@ func TestMoveActions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-
 			game := NewGame()
 			defer func() { close(game.Update) }()
 			game.Tetromino = newJ()
-
-			if tt.updateStack != nil {
-				tt.updateStack(game)
-			}
 
 			var wg sync.WaitGroup
 			go func() {
