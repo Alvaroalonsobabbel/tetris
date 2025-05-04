@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var emptyStack = [20][10]string{}
+var emptyStack = [20][10]Shape{}
 
 type Game struct {
 	ticker *time.Ticker
@@ -26,7 +26,7 @@ type Game struct {
 	// Columns are 0 > 9 left to right and represent the X axis
 	// Rows are 19 > 0 top to bottom and represent the Y axis
 	// An empty string is an empty cell. Otherwise it has the color it will be rendered with.
-	Stack [20][10]string
+	Stack [20][10]Shape
 
 	Tetromino    *Tetromino
 	NexTetromino *Tetromino
@@ -47,9 +47,20 @@ func NewGame() *Game {
 	}
 }
 
+// NewTestGame creates a new game with a test tetromino.
+func NewTestGame(shape Shape) *Game {
+	return &Game{
+		Tetromino: shapeMap[shape](),
+		Stack:     emptyStack,
+		Level:     1,
+		GameOver:  make(chan bool),
+		Update:    make(chan bool),
+	}
+}
+
 func (g *Game) Start() {
 	g.ticker = time.NewTicker(setTime(g.Level))
-	g.Tetromino = newJ()
+	g.Tetromino = newI()
 	g.Update <- true
 	// check for game over?
 	// draft a NextTetromino
@@ -57,9 +68,9 @@ func (g *Game) Start() {
 	go func() {
 		for range g.ticker.C {
 			if g.isCollision(0, -1, g.Tetromino) {
-				g.ticker.Stop()
 				g.toStack()
 				g.Update <- true
+				g.ticker.Stop()
 				g.Start()
 				// clear lines?
 			} else {

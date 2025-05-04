@@ -9,7 +9,7 @@ import (
 
 func TestStack(t *testing.T) {
 	t.Run("New game starts with empty stack", func(t *testing.T) {
-		game := NewGame()
+		game := NewTestGame(J)
 		for _, c := range game.Stack {
 			for _, r := range c {
 				if r != "" {
@@ -66,8 +66,7 @@ func TestIsCollision(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			game := NewGame()
-			game.Tetromino = newJ()
+			game := NewTestGame(J)
 			game.Stack[17][5] = "C"
 
 			c := game.isCollision(tt.deltaX, tt.deltaY, game.Tetromino)
@@ -83,8 +82,8 @@ func TestIsCollision(t *testing.T) {
 
 func TestMoveActions(t *testing.T) {
 	tests := []struct {
-		name   string
-		action func(g *Game)
+		name         string
+		action       func(g *Game)
 		wantUpdate   bool
 		wantLocation []int // x, y
 	}{
@@ -151,10 +150,7 @@ func TestMoveActions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			game := NewGame()
-			defer func() { close(game.Update) }()
-			game.Tetromino = newJ()
-
+			game := NewTestGame(J)
 			var wg sync.WaitGroup
 			go func() {
 				select {
@@ -188,10 +184,8 @@ func TestMoveActions(t *testing.T) {
 }
 
 func TestRotation(t *testing.T) {
-	game := NewGame()
-	defer func() { close(game.Update) }()
+	game := NewTestGame(J)
 	go func() { <-game.Update }()
-	game.Tetromino = newJ()
 
 	wantGrid := [][]bool{
 		{false, true, true},
@@ -211,10 +205,10 @@ func TestToStack(t *testing.T) {
 
 	game.toStack()
 	wantStack := emptyStack
-	wantStack[19][3] = "J"
-	wantStack[18][3] = "J"
-	wantStack[18][4] = "J"
-	wantStack[18][5] = "J"
+	wantStack[19][3] = J
+	wantStack[18][3] = J
+	wantStack[18][4] = J
+	wantStack[18][5] = J
 
 	if !reflect.DeepEqual(game.Stack, wantStack) {
 		t.Errorf("wanted %v, got %v", wantStack, game.Stack)

@@ -1,10 +1,32 @@
 package tetris
 
+type Shape string
+
+const (
+	I Shape = "I"
+	J Shape = "J"
+	L Shape = "L"
+	O Shape = "O"
+	S Shape = "S"
+	Z Shape = "Z"
+	T Shape = "T"
+)
+
+var shapeMap = map[Shape]func() *Tetromino{
+	I: newI,
+	J: newJ,
+	L: newL,
+	O: newO,
+	S: newS,
+	Z: newZ,
+	T: newT,
+}
+
 type Tetromino struct {
 	Grid  [][]bool
 	X     int
 	Y     int
-	Shape string
+	Shape Shape
 }
 
 /*
@@ -30,7 +52,7 @@ func newI() *Tetromino {
 		},
 		X:     3,
 		Y:     20,
-		Shape: "I",
+		Shape: I,
 	}
 }
 
@@ -54,7 +76,7 @@ func newJ() *Tetromino {
 		},
 		X:     3,
 		Y:     19,
-		Shape: "J",
+		Shape: J,
 	}
 }
 
@@ -78,7 +100,7 @@ func newL() *Tetromino {
 		},
 		X:     3,
 		Y:     19,
-		Shape: "L",
+		Shape: L,
 	}
 }
 
@@ -99,7 +121,7 @@ func newO() *Tetromino {
 		},
 		X:     4,
 		Y:     19,
-		Shape: "O",
+		Shape: O,
 	}
 }
 
@@ -123,7 +145,7 @@ func newS() *Tetromino {
 		},
 		X:     3,
 		Y:     19,
-		Shape: "S",
+		Shape: S,
 	}
 }
 
@@ -147,7 +169,7 @@ func newZ() *Tetromino {
 		},
 		X:     3,
 		Y:     19,
-		Shape: "Z",
+		Shape: Z,
 	}
 }
 
@@ -171,6 +193,6 @@ func newT() *Tetromino {
 		},
 		X:     3,
 		Y:     19,
-		Shape: "T",
+		Shape: T,
 	}
 }
