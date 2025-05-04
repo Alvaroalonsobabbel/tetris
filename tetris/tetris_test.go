@@ -9,7 +9,7 @@ import (
 
 func TestStack(t *testing.T) {
 	t.Run("New game starts with empty stack", func(t *testing.T) {
-		game := New()
+		game := NewGame()
 		for _, c := range game.Stack {
 			for _, r := range c {
 				if r != "" {
@@ -66,7 +66,7 @@ func TestIsCollision(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			game := New()
+			game := NewGame()
 			game.CurrentTetromino = newJ()
 			game.Stack[17][5] = "C"
 
@@ -139,7 +139,7 @@ func TestMoveActions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			game := New()
+			game := NewGame()
 			defer func() { close(game.Update) }()
 			game.CurrentTetromino = newJ()
 
@@ -180,7 +180,7 @@ func TestMoveActions(t *testing.T) {
 }
 
 func TestRotation(t *testing.T) {
-	game := New()
+	game := NewGame()
 	defer func() { close(game.Update) }()
 	go func() { <-game.Update }()
 	game.CurrentTetromino = newJ()
@@ -197,7 +197,7 @@ func TestRotation(t *testing.T) {
 }
 
 func TestToStack(t *testing.T) {
-	game := New()
+	game := NewGame()
 	defer func() { close(game.Update) }()
 	game.CurrentTetromino = newJ()
 

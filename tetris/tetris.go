@@ -38,7 +38,7 @@ type Game struct {
 	// options? like ghost piece
 }
 
-func New() *Game {
+func NewGame() *Game {
 	return &Game{
 		Stack:    emptyStack,
 		Level:    1,
@@ -129,7 +129,7 @@ func (g *Game) Rotate() {
 }
 
 func (g *Game) isCollision(deltaX, deltaY int, t *Tetromino) bool {
-	// isCollision() will receive the desired future row and col tetromino's position
+	// isCollision() will receive the desired future X and Y tetromino's position
 	// and calculate if there is a collision or if it's out of bounds from the stack
 	for iy, y := range t.Grid {
 		for ix, x := range y {
