@@ -128,26 +128,22 @@ func (g *Game) Rotate() {
 	}
 }
 
-func (g *Game) isCollision(x, y int, t *Tetromino) bool {
+func (g *Game) isCollision(deltaX, deltaY int, t *Tetromino) bool {
 	// isCollision() will receive the desired future row and col tetromino's position
 	// and calculate if there is a collision or if it's out of bounds from the stack
-	//
-	// 		0 1 2 3 4 5 6 7 8 9			0 1 2
-	// 19	X X X O X X X X X X		0	O X X
-	// 18	X X X O O O X X X X		1	O O O
-	// 17	X X X X X X X X X X		2	X X X
-	for ir, r := range t.Grid {
-		for ic, c := range r {
-			// we check only if the tetromino cell is true
-			if c {
+	for iy, y := range t.Grid {
+		for ix, x := range y {
+			// we check only if the tetromino cell is true as we don't
+			// care if the tetromino grid is out of bounds or in collision.
+			if x {
 				// the position of the tetromino cell against the stack is:
 				// current X and Y + cell index offset + desired position offset
 				// Y axis decrease to 0 so we need to substract the index
-				yPos := t.Y - ir + y
-				xPos := t.X + ic + x
+				yPos := t.Y - iy + deltaY
+				xPos := t.X + ix + deltaX
 
-				// check if the cell is out of bounds for the X and Y and if the stack's cell is empty
-				if yPos < 0 || yPos > 19 || xPos < 0 || xPos >= len(g.Stack[0]) || g.Stack[yPos][xPos] != "" {
+				// check if cell is out of bounds for X, Y and against the stack.
+				if yPos < 0 || yPos > 19 || xPos < 0 || xPos > 9 || g.Stack[yPos][xPos] != "" {
 					return true
 				}
 			}

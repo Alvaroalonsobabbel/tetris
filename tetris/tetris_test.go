@@ -21,15 +21,63 @@ func TestStack(t *testing.T) {
 }
 
 func TestIsCollision(t *testing.T) {
-	game := New()
-	game.CurrentTetromino = newJ()
-	game.Stack[17][5] = "used"
-
-	if game.isCollision(0, 0, game.CurrentTetromino) {
-		t.Errorf("Expected no collision")
+	// 		0 1 2 3 4 5 6 7 8 9			0 1 2
+	// 19	X X X O X X X X X X		0	O X X
+	// 18	X X X O O O X X X X		1	O O O
+	// 17	X X X X X C X X X X		2	X X X
+	tests := []struct {
+		name           string
+		deltaX, deltaY int
+		wantCollision  bool
+	}{
+		{
+			name: "no collision",
+		},
+		{
+			name:          "stack collision",
+			deltaY:        -1,
+			wantCollision: true,
+		},
+		{
+			name:          "left bond collision",
+			deltaX:        -4,
+			wantCollision: true,
+		},
+		{
+			name:          "right bond collision",
+			deltaX:        5,
+			wantCollision: true,
+		},
+		{
+			name:          "bottom bond collision",
+			deltaY:        -19,
+			wantCollision: true,
+		},
+		{
+			name: "upper bond collision",
+			// when drafting an I and rotating it immediately, it
+			// should put the tetromino out of the upper bond.
+			// the collision should allow for a wall-kick.
+			deltaY:        1,
+			wantCollision: true,
+		},
 	}
-	if !game.isCollision(0, -1, game.CurrentTetromino) {
-		t.Errorf("Expected collision")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			game := New()
+			game.CurrentTetromino = newJ()
+			game.Stack[17][5] = "C"
+
+			c := game.isCollision(tt.deltaX, tt.deltaY, game.CurrentTetromino)
+			if c && !tt.wantCollision {
+				t.Errorf("Expected no collision")
+			}
+			if !c && tt.wantCollision {
+				t.Errorf("Expected collision")
+			}
+		})
 	}
 }
 
@@ -134,6 +182,7 @@ func TestMoveActions(t *testing.T) {
 func TestRotation(t *testing.T) {
 	game := New()
 	defer func() { close(game.Update) }()
+	go func() { <-game.Update }()
 	game.CurrentTetromino = newJ()
 
 	wantGrid := [][]bool{
