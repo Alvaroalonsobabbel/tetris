@@ -28,8 +28,8 @@ type Game struct {
 	// An empty string is an empty cell. Otherwise it has the color it will be rendered with.
 	Stack [20][10]string
 
-	CurrentTetromino *Tetromino
-	NexTetromino     *Tetromino
+	Tetromino    *Tetromino
+	NexTetromino *Tetromino
 
 	GameOver   chan bool
 	Update     chan bool
@@ -49,21 +49,21 @@ func NewGame() *Game {
 
 func (g *Game) Start() {
 	g.ticker = time.NewTicker(setTime(g.Level))
-	g.CurrentTetromino = newJ()
+	g.Tetromino = newJ()
 	g.Update <- true
 	// check for game over?
 	// draft a NextTetromino
 	// copy NextTetromino to CurrentTetromino
 	go func() {
 		for range g.ticker.C {
-			if g.isCollision(0, -1, g.CurrentTetromino) {
+			if g.isCollision(0, -1, g.Tetromino) {
 				g.ticker.Stop()
 				g.toStack()
 				g.Update <- true
 				g.Start()
 				// clear lines?
 			} else {
-				g.CurrentTetromino.Y--
+				g.Tetromino.Y--
 				g.Update <- true
 			}
 		}
@@ -72,44 +72,44 @@ func (g *Game) Start() {
 
 // Moves the Tetromino one step to the left.
 func (g *Game) Left() {
-	if !g.isCollision(-1, 0, g.CurrentTetromino) {
-		g.CurrentTetromino.X--
+	if !g.isCollision(-1, 0, g.Tetromino) {
+		g.Tetromino.X--
 		g.Update <- true
 	}
 }
 
 // Moves the Tetromino one step to the right.
 func (g *Game) Right() {
-	if !g.isCollision(1, 0, g.CurrentTetromino) {
-		g.CurrentTetromino.X++
+	if !g.isCollision(1, 0, g.Tetromino) {
+		g.Tetromino.X++
 		g.Update <- true
 	}
 }
 
 // Moves the Tetromino one step down.
 func (g *Game) Down() {
-	if !g.isCollision(0, -1, g.CurrentTetromino) {
-		g.CurrentTetromino.Y--
+	if !g.isCollision(0, -1, g.Tetromino) {
+		g.Tetromino.Y--
 		g.Update <- true
 	}
 }
 
 // Rotates the tetromino clockwise.
 func (g *Game) Rotate() {
-	if g.CurrentTetromino.Shape == "O" {
+	if g.Tetromino.Shape == "O" {
 		// the O shape doesn't rotate.
 		return
 	}
 
 	// copies the grid from the current tetromino to test for collisions
-	test := make([][]bool, len(g.CurrentTetromino.Grid))
-	for i := range g.CurrentTetromino.Grid {
-		test[i] = make([]bool, len(g.CurrentTetromino.Grid[i]))
-		copy(test[i], g.CurrentTetromino.Grid[i])
+	test := make([][]bool, len(g.Tetromino.Grid))
+	for i := range g.Tetromino.Grid {
+		test[i] = make([]bool, len(g.Tetromino.Grid[i]))
+		copy(test[i], g.Tetromino.Grid[i])
 	}
 
 	// rotates the grid clockwise
-	for ir, r := range g.CurrentTetromino.Grid {
+	for ir, r := range g.Tetromino.Grid {
 		col := len(r) - ir - 1
 		for ic, c := range r {
 			test[ic][col] = c
@@ -118,23 +118,23 @@ func (g *Game) Rotate() {
 
 	testTetromino := &Tetromino{
 		Grid: test,
-		X:    g.CurrentTetromino.X,
-		Y:    g.CurrentTetromino.Y,
+		X:    g.Tetromino.X,
+		Y:    g.Tetromino.Y,
 	}
 
 	// TODO: implement wall kicks
 	if !g.isCollision(0, 0, testTetromino) {
-		g.CurrentTetromino.Grid = test
+		g.Tetromino.Grid = test
 		g.Update <- true
 	}
 }
 
 func (g *Game) Drop() {
 	var delta int
-	for !g.isCollision(0, delta, g.CurrentTetromino) {
+	for !g.isCollision(0, delta, g.Tetromino) {
 		delta--
 	}
-	g.CurrentTetromino.Y += delta + 1
+	g.Tetromino.Y += delta + 1
 	g.Update <- true
 }
 
@@ -163,10 +163,10 @@ func (g *Game) isCollision(deltaX, deltaY int, t *Tetromino) bool {
 }
 
 func (g *Game) toStack() {
-	for iy, y := range g.CurrentTetromino.Grid {
+	for iy, y := range g.Tetromino.Grid {
 		for ix, x := range y {
 			if x {
-				g.Stack[g.CurrentTetromino.Y-iy][ix+g.CurrentTetromino.X] = g.CurrentTetromino.Shape
+				g.Stack[g.Tetromino.Y-iy][ix+g.Tetromino.X] = g.Tetromino.Shape
 			}
 		}
 	}

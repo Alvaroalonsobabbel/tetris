@@ -67,10 +67,10 @@ func TestIsCollision(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			game := NewGame()
-			game.CurrentTetromino = newJ()
+			game.Tetromino = newJ()
 			game.Stack[17][5] = "C"
 
-			c := game.isCollision(tt.deltaX, tt.deltaY, game.CurrentTetromino)
+			c := game.isCollision(tt.deltaX, tt.deltaY, game.Tetromino)
 			if c && !tt.wantCollision {
 				t.Errorf("Expected no collision")
 			}
@@ -147,7 +147,7 @@ func TestMoveActions(t *testing.T) {
 
 			game := NewGame()
 			defer func() { close(game.Update) }()
-			game.CurrentTetromino = newJ()
+			game.Tetromino = newJ()
 
 			if tt.updateStack != nil {
 				tt.updateStack(game)
@@ -174,11 +174,11 @@ func TestMoveActions(t *testing.T) {
 
 			if tt.wantUpdate {
 				// we expect the tetromino's location to have been updated
-				if game.CurrentTetromino.Y != tt.wantLocation[0] {
-					t.Errorf("wanted tetromino's Y to be %d, got %d", tt.wantLocation[0], game.CurrentTetromino.Y)
+				if game.Tetromino.Y != tt.wantLocation[0] {
+					t.Errorf("wanted tetromino's Y to be %d, got %d", tt.wantLocation[0], game.Tetromino.Y)
 				}
-				if game.CurrentTetromino.X != tt.wantLocation[1] {
-					t.Errorf("wanted tetromino's X to be %d, got %d", tt.wantLocation[1], game.CurrentTetromino.X)
+				if game.Tetromino.X != tt.wantLocation[1] {
+					t.Errorf("wanted tetromino's X to be %d, got %d", tt.wantLocation[1], game.Tetromino.X)
 				}
 			}
 		})
@@ -189,7 +189,7 @@ func TestRotation(t *testing.T) {
 	game := NewGame()
 	defer func() { close(game.Update) }()
 	go func() { <-game.Update }()
-	game.CurrentTetromino = newJ()
+	game.Tetromino = newJ()
 
 	wantGrid := [][]bool{
 		{false, true, true},
@@ -197,15 +197,15 @@ func TestRotation(t *testing.T) {
 		{false, true, false},
 	}
 	game.Rotate()
-	if !reflect.DeepEqual(game.CurrentTetromino.Grid, wantGrid) {
-		t.Errorf("wanted %v, got %v", wantGrid, game.CurrentTetromino.Grid)
+	if !reflect.DeepEqual(game.Tetromino.Grid, wantGrid) {
+		t.Errorf("wanted %v, got %v", wantGrid, game.Tetromino.Grid)
 	}
 }
 
 func TestToStack(t *testing.T) {
 	game := NewGame()
 	defer func() { close(game.Update) }()
-	game.CurrentTetromino = newJ()
+	game.Tetromino = newJ()
 
 	game.toStack()
 	wantStack := emptyStack
