@@ -199,10 +199,7 @@ func TestRotation(t *testing.T) {
 }
 
 func TestToStack(t *testing.T) {
-	game := NewGame()
-	defer func() { close(game.Update) }()
-	game.Tetromino = newJ()
-
+	game := NewTestGame(J)
 	game.toStack()
 	wantStack := emptyStack
 	wantStack[19][3] = J
@@ -213,4 +210,47 @@ func TestToStack(t *testing.T) {
 	if !reflect.DeepEqual(game.Stack, wantStack) {
 		t.Errorf("wanted %v, got %v", wantStack, game.Stack)
 	}
+}
+
+func TestRandomBag(t *testing.T) {
+	t.Run("bag should contain 7 elements. after drawing it should contain one less", func(t *testing.T) {
+		t.Parallel()
+		bag := newBag()
+		if len(bag.bag) != 7 {
+			t.Errorf("wanted bag to have 7 pieces, got %d", len(bag.bag))
+		}
+		bag.draw()
+		if len(bag.bag) != 6 {
+			t.Errorf("wanted bag to have 6 pieces, got %d", len(bag.bag))
+		}
+	})
+
+	t.Run("first draw of the game should always be I, J, L or T", func(t *testing.T) {
+		t.Parallel()
+		for range 10 {
+			go func() {
+				bag := newBag()
+				tetromino := bag.draw()
+				if tetromino.Shape == O || tetromino.Shape == Z || tetromino.Shape == S {
+					t.Errorf("wanted I, J, L, or T, got %v", tetromino.Shape)
+				}
+			}()
+		}
+	})
+
+	t.Run("after drawing 7 tetrominos the bag should empty. next draw whould replenish it", func(t *testing.T) {
+		t.Parallel()
+		bag := newBag()
+		for range 7 {
+			bag.draw()
+		}
+		if len(bag.bag) != 0 {
+			t.Errorf("wanted bag to be empty, got %d pieces", len(bag.bag))
+		}
+		bag.draw()
+		if len(bag.bag) != 6 {
+			t.Errorf("wanted bag to have 6 pieces, got %d", len(bag.bag))
+		}
+	})
+
 }

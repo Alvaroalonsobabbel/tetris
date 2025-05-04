@@ -14,6 +14,8 @@ package tetris
 
 import (
 	"math"
+	"math/rand"
+	"slices"
 	"time"
 )
 
@@ -21,6 +23,7 @@ var emptyStack = [20][10]Shape{}
 
 type Game struct {
 	ticker *time.Ticker
+	bag    *bag
 
 	// Stack is the playfield. 20 rows x 10 columns.
 	// Columns are 0 > 9 left to right and represent the X axis
@@ -44,6 +47,7 @@ func NewGame() *Game {
 		Level:    1,
 		GameOver: make(chan bool),
 		Update:   make(chan bool),
+		bag:      newBag(),
 	}
 }
 
@@ -60,7 +64,7 @@ func NewTestGame(shape Shape) *Game {
 
 func (g *Game) Start() {
 	g.ticker = time.NewTicker(setTime(g.Level))
-	g.Tetromino = newI()
+	g.Tetromino = g.bag.draw()
 	g.Update <- true
 	// check for game over?
 	// draft a NextTetromino
@@ -181,6 +185,44 @@ func (g *Game) toStack() {
 			}
 		}
 	}
+}
+
+type bag struct {
+	firstDraw bool
+	bag       []*Tetromino
+}
+
+func newBag() *bag {
+	return &bag{
+		firstDraw: true,
+		bag:       newTetrominoList(),
+	}
+}
+
+func (b *bag) draw() *Tetromino {
+	// https://tetris.wiki/Random_Generator
+	// first piece is always  I, J, L, or T
+	// new bag is generated after last piece is drawn
+	if len(b.bag) == 0 {
+		b.bag = newTetrominoList()
+	}
+	firstDrawList := []Shape{I, T, J, L}
+	i := rand.Intn(len(b.bag))
+	t := b.bag[i]
+	if b.firstDraw && !slices.Contains(firstDrawList, t.Shape) {
+		return b.draw()
+	}
+	b.firstDraw = false
+	b.bag = append(b.bag[:i], b.bag[i+1:]...)
+	return t
+}
+
+func newTetrominoList() []*Tetromino {
+	var b []*Tetromino
+	for _, t := range shapeMap {
+		b = append(b, t())
+	}
+	return b
 }
 
 func setTime(level int) time.Duration {
