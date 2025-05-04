@@ -50,6 +50,7 @@ func NewGame() *Game {
 func (g *Game) Start() {
 	g.ticker = time.NewTicker(setTime(g.Level))
 	g.CurrentTetromino = newJ()
+	g.Update <- true
 	// check for game over?
 	// draft a NextTetromino
 	// copy NextTetromino to CurrentTetromino
@@ -126,6 +127,15 @@ func (g *Game) Rotate() {
 		g.CurrentTetromino.Grid = test
 		g.Update <- true
 	}
+}
+
+func (g *Game) Drop() {
+	var delta int
+	for !g.isCollision(0, delta, g.CurrentTetromino) {
+		delta--
+	}
+	g.CurrentTetromino.Y += delta + 1
+	g.Update <- true
 }
 
 func (g *Game) isCollision(deltaX, deltaY int, t *Tetromino) bool {
