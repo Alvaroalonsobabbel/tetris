@@ -19,16 +19,6 @@ import (
 	"time"
 )
 
-// var emptyStack = [20][10]Shape{}
-
-func emptyStack() [][]Shape {
-	e := make([][]Shape, 20)
-	for i := range e {
-		e[i] = make([]Shape, 10)
-	}
-	return e
-}
-
 type Game struct {
 	ticker *time.Ticker
 	bag    *bag
@@ -268,6 +258,14 @@ func newTetrominoList() []*Tetromino {
 		b = append(b, t())
 	}
 	return b
+}
+
+func emptyStack() [][]Shape {
+	e := make([][]Shape, 20)
+	for i := range e {
+		e[i] = make([]Shape, 10)
+	}
+	return e
 }
 
 func setTime(level int) time.Duration {
