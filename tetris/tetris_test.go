@@ -210,6 +210,9 @@ func TestToStack(t *testing.T) {
 	if !reflect.DeepEqual(game.Stack, wantStack) {
 		t.Errorf("wanted %v, got %v", wantStack, game.Stack)
 	}
+	if game.Tetromino != nil {
+		t.Errorf("wanted Tetromino to be nil, got %v", game.Tetromino)
+	}
 }
 
 func TestRandomBag(t *testing.T) {
@@ -252,4 +255,33 @@ func TestRandomBag(t *testing.T) {
 			t.Errorf("wanted bag to have 6 pieces, got %d", len(bag.bag))
 		}
 	})
+}
+
+func TestClearLines(t *testing.T) {
+	game := NewTestGame(J)
+	for ii := range 2 {
+		for i := range 10 {
+			game.Stack[ii][i] = J
+		}
+	}
+	game.Stack[2][0] = J
+	var updateCount int
+
+	go func() {
+		for <-game.Update {
+			updateCount++
+		}
+	}()
+	game.clearLines()
+	wantStack := emptyStack()
+	wantStack[0][0] = J
+	if !reflect.DeepEqual(game.Stack, wantStack) {
+		t.Errorf("wanted %v, got %v", wantStack, game.Stack)
+	}
+	if updateCount != 8 {
+		t.Errorf("wanted %d updates, got %d", 8, updateCount)
+	}
+	if game.LinesClear != 2 {
+		t.Errorf("wanted 2 lines clear, got %d", game.LinesClear)
+	}
 }

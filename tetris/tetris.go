@@ -82,6 +82,7 @@ func (g *Game) Start() {
 			if g.isCollision(0, -1, g.Tetromino) {
 				g.ticker.Stop()
 				g.toStack()
+				g.clearLines()
 				g.Update <- true
 
 				g.Start()
@@ -194,6 +195,41 @@ func (g *Game) toStack() {
 			}
 		}
 	}
+	g.Tetromino = nil
+}
+
+func (g *Game) clearLines() {
+	complete := make(map[int][]Shape)
+	var l []int
+	for i, x := range g.Stack {
+		if !slices.Contains(x, "") {
+			complete[i] = x
+			l = append(l, i)
+		}
+	}
+
+	// animate the line deletion
+	for i := range 8 {
+		if i%2 == 0 {
+			for _, v := range l {
+				g.Stack[v] = make([]Shape, 10)
+			}
+		} else {
+			for k, v := range complete {
+				g.Stack[k] = v
+			}
+		}
+		g.Update <- true
+		time.Sleep(40 * time.Millisecond)
+	}
+
+	// remove complete lines in reverse order to avoid index shift issues.
+	for i := len(l) - 1; i >= 0; i-- {
+		g.Stack = append(g.Stack[:l[i]], g.Stack[l[i]+1:]...)
+		g.Stack = append(g.Stack, make([]Shape, 10))
+	}
+
+	g.LinesClear += len(l)
 }
 
 type bag struct {
