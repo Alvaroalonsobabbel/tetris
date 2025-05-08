@@ -316,4 +316,19 @@ func TestSetLevel(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("game with set level is not overriden until lines > level", func(t *testing.T) {
+		game := NewGame()
+		game.Level = 5
+		game.LinesClear = 1
+		game.setLevel()
+		if game.Level != 5 {
+			t.Errorf("wanted level 5, got %d", game.Level)
+		}
+		game.LinesClear = 50
+		game.setLevel()
+		if game.Level != 6 {
+			t.Errorf("wanted level 6, got %d", game.Level)
+		}
+	})
 }

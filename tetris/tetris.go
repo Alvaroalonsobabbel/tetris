@@ -226,13 +226,22 @@ func (g *Game) clearLines() {
 func (g *Game) setLevel() {
 	// set the fixed-goal level system
 	// https://tetris.wiki/Marathon
+	//
+	// In the fixed-goal system, each level requires 10 lines to clear.
+	// If the player starts at a later level, the number of lines required is the same
+	// as if starting at level 1. An example is when the player starts at level 5,
+	// the player will have to clear 50 lines to advance to level 6
+	var l int
 	switch {
 	case g.LinesClear < 10:
-		g.Level = 1
+		l = 1
 	case g.LinesClear >= 10 && g.LinesClear < 100:
-		g.Level = (g.LinesClear/10)%10 + 1
+		l = (g.LinesClear/10)%10 + 1
 	case g.LinesClear >= 100:
-		g.Level = g.LinesClear/10 + 1
+		l = g.LinesClear/10 + 1
+	}
+	if l > g.Level {
+		g.Level = l
 	}
 }
 
