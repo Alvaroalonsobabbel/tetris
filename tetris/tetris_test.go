@@ -1,6 +1,7 @@
 package tetris
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -265,6 +266,7 @@ func TestClearLines(t *testing.T) {
 		}
 	}
 	game.Stack[2][0] = J
+	game.LinesClear = 9
 	var updateCount int
 
 	go func() {
@@ -281,7 +283,37 @@ func TestClearLines(t *testing.T) {
 	if updateCount != 8 {
 		t.Errorf("wanted %d updates, got %d", 8, updateCount)
 	}
-	if game.LinesClear != 2 {
-		t.Errorf("wanted 2 lines clear, got %d", game.LinesClear)
+	if game.LinesClear != 11 {
+		t.Errorf("wanted 11 lines clear, got %d", game.LinesClear)
+	}
+	if game.Level != 2 {
+		t.Errorf("wanted level 2, got %d", game.Level)
+
+	}
+}
+
+func TestSetLevel(t *testing.T) {
+	tests := []struct {
+		lines, wantLevel int
+	}{
+		{1, 1},
+		{9, 1},
+		{10, 2},
+		{12, 2},
+		{20, 3},
+		{94, 10},
+		{100, 11},
+		{209, 21},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("for %d lines should have level %d", tt.lines, tt.wantLevel), func(t *testing.T) {
+			game := NewGame()
+			game.LinesClear = tt.lines
+			game.setLevel()
+			if game.Level != tt.wantLevel {
+				t.Errorf("wanted level %d, got %d", tt.wantLevel, game.Level)
+			}
+		})
 	}
 }

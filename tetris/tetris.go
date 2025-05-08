@@ -61,6 +61,7 @@ func NewTestGame(shape Shape) *Game {
 }
 
 func (g *Game) Start() {
+	g.setLevel()
 	g.ticker = time.NewTicker(setTime(g.Level))
 	g.Tetromino = g.bag.draw()
 	g.Update <- true
@@ -222,6 +223,19 @@ func (g *Game) clearLines() {
 	g.LinesClear += len(l)
 }
 
+func (g *Game) setLevel() {
+	// set the fixed-goal level system
+	// https://tetris.wiki/Marathon
+	switch {
+	case g.LinesClear < 10:
+		g.Level = 1
+	case g.LinesClear >= 10 && g.LinesClear < 100:
+		g.Level = (g.LinesClear/10)%10 + 1
+	case g.LinesClear >= 100:
+		g.Level = g.LinesClear/10 + 1
+	}
+}
+
 type bag struct {
 	firstDraw bool
 	bag       []*Tetromino
@@ -236,7 +250,7 @@ func newBag() *bag {
 
 func (b *bag) draw() *Tetromino {
 	// https://tetris.wiki/Random_Generator
-	// first piece is always  I, J, L, or T
+	// first piece is always I, J, L, or T
 	// new bag is generated after last piece is drawn
 	if len(b.bag) == 0 {
 		b.bag = newTetrominoList()
