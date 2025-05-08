@@ -61,23 +61,23 @@ func NewTestGame(shape Shape) *Game {
 }
 
 func (g *Game) Start() {
-	g.setLevel()
+	if g.NexTetromino != nil && g.isCollision(0, 0, g.NexTetromino) {
+		g.GameOver <- true
+		return
+	}
 	g.ticker = time.NewTicker(setTime(g.Level))
-	g.Tetromino = g.bag.draw()
+	g.setTetromino()
 	g.Update <- true
-	// check for game over?
-	// draft a NextTetromino
-	// copy NextTetromino to CurrentTetromino
 	go func() {
 		for range g.ticker.C {
 			if g.isCollision(0, -1, g.Tetromino) {
 				g.ticker.Stop()
 				g.toStack()
 				g.clearLines()
+				g.setLevel()
 				g.Update <- true
 
 				g.Start()
-				// clear lines?
 			} else {
 				g.Tetromino.Y--
 				g.Update <- true
@@ -152,6 +152,16 @@ func (g *Game) Drop() {
 	}
 	g.Tetromino.Y += delta + 1
 	g.Update <- true
+}
+
+func (g *Game) setTetromino() {
+	if g.Tetromino == nil && g.NexTetromino == nil {
+		g.Tetromino = g.bag.draw()
+		g.NexTetromino = g.bag.draw()
+	} else {
+		g.Tetromino = g.NexTetromino
+		g.NexTetromino = g.bag.draw()
+	}
 }
 
 func (g *Game) isCollision(deltaX, deltaY int, t *Tetromino) bool {

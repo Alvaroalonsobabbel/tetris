@@ -286,10 +286,6 @@ func TestClearLines(t *testing.T) {
 	if game.LinesClear != 11 {
 		t.Errorf("wanted 11 lines clear, got %d", game.LinesClear)
 	}
-	if game.Level != 2 {
-		t.Errorf("wanted level 2, got %d", game.Level)
-
-	}
 }
 
 func TestSetLevel(t *testing.T) {
@@ -331,4 +327,43 @@ func TestSetLevel(t *testing.T) {
 			t.Errorf("wanted level 6, got %d", game.Level)
 		}
 	})
+}
+
+func TestSetTetromino(t *testing.T) {
+	t.Run("on new game it populates a current and next tetromino", func(t *testing.T) {
+		game := NewGame()
+		game.setTetromino()
+		if game.Tetromino == nil || game.NexTetromino == nil {
+			t.Errorf("want Tetromino and NextTetromino to not be nil, got: %v, %v", game.Tetromino, game.NexTetromino)
+		}
+	})
+	t.Run("after tetromino has been transferred to the stack, moves next tetromino to current", func(t *testing.T) {
+		game := NewGame()
+		go func() { <-game.Update }()
+		game.setTetromino()
+		game.Drop()
+		game.toStack()
+		wantShape := game.NexTetromino.Shape
+		game.setTetromino()
+		if game.Tetromino.Shape != wantShape {
+			t.Errorf("wanted current tetromino to have shape %v, got %v", wantShape, game.Tetromino.Shape)
+		}
+	})
+}
+
+func TestGameOver(t *testing.T) {
+	game := NewGame()
+	game.NexTetromino = newJ()
+	game.Stack[19][3] = Shape(J)
+
+	var wantGameOver bool
+	go func() {
+		<-game.GameOver
+		wantGameOver = true
+	}()
+	game.Start()
+	time.Sleep(20 * time.Millisecond)
+	if !wantGameOver {
+		t.Error("expected game to be over")
+	}
 }
