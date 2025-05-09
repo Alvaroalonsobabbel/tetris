@@ -19,6 +19,17 @@ import (
 	"time"
 )
 
+type Action string
+
+const (
+	MoveLeft    Action = "left"      // Moves the Tetromino one step to the left.
+	MoveRight   Action = "right"     // Moves the Tetromino one step to the right.
+	MoveDown    Action = "down"      // Moves the Tetromino one step down.
+	DropDown    Action = "drop"      // Drops the Tetromino down the stack.
+	RotateRight Action = "rotatecw"  // Rotates the Tetromino clockwise.
+	RotateLeft  Action = "rotateccw" // Rotates the Tetromino counter-clockwise.
+)
+
 type Game struct {
 	ticker *time.Ticker
 	bag    *bag
@@ -86,34 +97,42 @@ func (g *Game) Start() {
 	}()
 }
 
-// Moves the Tetromino one step to the left.
-func (g *Game) Left() {
-	if !g.isCollision(-1, 0, g.Tetromino) {
-		g.Tetromino.X--
-		g.Update <- true
+func (g *Game) Action(a Action) {
+	if g.Tetromino == nil {
+		// between toStack() and next round's setTetromino() Tetromino is nil.
+		// we return here to avoid user commands to cause panic.
+		return
 	}
+	switch a {
+	case MoveLeft:
+		if !g.isCollision(-1, 0, g.Tetromino) {
+			g.Tetromino.X--
+		}
+	case MoveRight:
+		if !g.isCollision(1, 0, g.Tetromino) {
+			g.Tetromino.X++
+		}
+	case MoveDown:
+		if !g.isCollision(0, -1, g.Tetromino) {
+			g.Tetromino.Y--
+		}
+	case DropDown:
+		var delta int
+		for !g.isCollision(0, delta, g.Tetromino) {
+			delta--
+		}
+		g.Tetromino.Y += delta + 1
+	case RotateRight:
+		g.rotate(a)
+	case RotateLeft:
+		g.rotate(a)
+	}
+	g.Update <- true
 }
 
-// Moves the Tetromino one step to the right.
-func (g *Game) Right() {
-	if !g.isCollision(1, 0, g.Tetromino) {
-		g.Tetromino.X++
-		g.Update <- true
-	}
-}
-
-// Moves the Tetromino one step down.
-func (g *Game) Down() {
-	if !g.isCollision(0, -1, g.Tetromino) {
-		g.Tetromino.Y--
-		g.Update <- true
-	}
-}
-
-// Rotates the tetromino clockwise.
-func (g *Game) Rotate() {
-	if g.Tetromino.Shape == "O" {
-		// the O shape doesn't rotate.
+// Rotates the tetromino
+func (g *Game) rotate(a Action) {
+	if g.Tetromino.Shape == O { // the O shape doesn't rotate.
 		return
 	}
 
@@ -124,11 +143,18 @@ func (g *Game) Rotate() {
 		copy(test[i], g.Tetromino.Grid[i])
 	}
 
-	// rotates the grid clockwise
-	for ir, r := range g.Tetromino.Grid {
-		col := len(r) - ir - 1
-		for ic, c := range r {
-			test[ic][col] = c
+	// rotates the grid
+	for ix, x := range g.Tetromino.Grid {
+		switch a {
+		case RotateRight:
+			col := len(x) - ix - 1
+			for iy, y := range x {
+				test[iy][col] = y
+			}
+		case RotateLeft:
+			for iy, y := range x {
+				test[len(x)-iy-1][ix] = y
+			}
 		}
 	}
 
@@ -141,17 +167,7 @@ func (g *Game) Rotate() {
 	// TODO: implement wall kicks
 	if !g.isCollision(0, 0, testTetromino) {
 		g.Tetromino.Grid = test
-		g.Update <- true
 	}
-}
-
-func (g *Game) Drop() {
-	var delta int
-	for !g.isCollision(0, delta, g.Tetromino) {
-		delta--
-	}
-	g.Tetromino.Y += delta + 1
-	g.Update <- true
 }
 
 func (g *Game) setTetromino() {

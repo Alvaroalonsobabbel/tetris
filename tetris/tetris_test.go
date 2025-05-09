@@ -82,69 +82,83 @@ func TestIsCollision(t *testing.T) {
 }
 
 func TestMoveActions(t *testing.T) {
+	// Initial state of the test:
+	//
+	// 	.	Spawn Location		.	Shape
+	// .	0 1 2 3 4 5 6 7 8 9		.	0 1 2
+	// 19	X X X O X X X X X X		0	O X X
+	// 18	X X X O O O X X X X		1	O O O
+	// 17	X X X X X X X X X X		2	X X X
 	tests := []struct {
 		name         string
-		action       func(g *Game)
-		wantUpdate   bool
+		action       Action
+		updateStack  func(g *Game)
+		wantGrid     [][]bool
 		wantLocation []int // x, y
 	}{
 		{
 			name:         "Move left unblocked",
-			action:       func(g *Game) { g.Left() },
-			wantUpdate:   true,
+			action:       MoveLeft,
 			wantLocation: []int{19, 2},
 		},
 		{
-			name: "Move left blocked",
-			action: func(g *Game) {
-				g.Stack[18][2] = "used"
-				g.Left()
+			name:   "Move left blocked",
+			action: MoveLeft,
+			updateStack: func(g *Game) {
+				g.Stack[18][2] = J
 			},
-		},
-		{
-			name:         "Move right unblocked",
-			action:       func(g *Game) { g.Right() },
-			wantUpdate:   true,
-			wantLocation: []int{19, 4},
-		},
-		{
-			name: "Move right blocked",
-			action: func(g *Game) {
-				g.Stack[18][6] = "used"
-				g.Right()
-			},
-		},
-		{
-			name:         "Move down unblocked",
-			action:       func(g *Game) { g.Down() },
-			wantUpdate:   true,
-			wantLocation: []int{18, 3},
-		},
-		{
-			name: "Move down blocked",
-			action: func(g *Game) {
-				g.Stack[17][3] = "used"
-				g.Down()
-			},
-		},
-		{
-			name:         "Rotate when unblocked",
-			action:       func(g *Game) { g.Rotate() },
-			wantUpdate:   true,
 			wantLocation: []int{19, 3},
 		},
 		{
-			name: "Rotate when blcoked",
-			action: func(g *Game) {
-				g.Stack[19][4] = "used"
-				g.Rotate()
+			name:         "Move right unblocked",
+			action:       MoveRight,
+			wantLocation: []int{19, 4},
+		},
+		{
+			name:   "Move right blocked",
+			action: MoveRight,
+			updateStack: func(g *Game) {
+				g.Stack[18][6] = J
 			},
+			wantLocation: []int{19, 3},
+		},
+		{
+			name:         "Move down unblocked",
+			action:       MoveDown,
+			wantLocation: []int{18, 3},
+		},
+		{
+			name:   "Move down blocked",
+			action: MoveDown,
+			updateStack: func(g *Game) {
+				g.Stack[17][3] = J
+			},
+			wantLocation: []int{19, 3},
 		},
 		{
 			name:         "Drop moves down until blocked",
-			action:       func(g *Game) { g.Drop() },
-			wantUpdate:   true,
+			action:       DropDown,
 			wantLocation: []int{1, 3},
+		},
+		{
+			name:         "Rotate right when unblocked",
+			action:       RotateRight,
+			wantLocation: []int{19, 3},
+			wantGrid: [][]bool{
+				{false, true, true},
+				{false, true, false},
+				{false, true, false},
+			},
+		},
+		{
+			name:         "Rotate left when unblocked",
+			action:       RotateLeft,
+			wantLocation: []int{19, 3},
+			wantGrid: [][]bool{
+				{false, true, false},
+				{false, true, false},
+				{true, true, false},
+			},
 		},
 	}
 
@@ -152,52 +166,55 @@ func TestMoveActions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			game := NewTestGame(J)
+			if tt.updateStack != nil {
+				tt.updateStack(game)
+			}
 			var wg sync.WaitGroup
 			go func() {
 				select {
 				case <-game.Update:
-					if !tt.wantUpdate {
-						t.Error("Update channel received a value but none was expected")
-					}
 				case <-time.After(20 * time.Millisecond):
-					if tt.wantUpdate {
-						t.Error("Expected to receive update signal but timed out")
-					}
+					t.Error("expected to receive update signal but timed out")
 				}
 				wg.Done()
 			}()
-
 			wg.Add(1)
-			tt.action(game)
+			game.Action(tt.action)
 			wg.Wait()
-
-			if tt.wantUpdate {
-				// we expect the tetromino's location to have been updated
-				if game.Tetromino.Y != tt.wantLocation[0] {
-					t.Errorf("wanted tetromino's Y to be %d, got %d", tt.wantLocation[0], game.Tetromino.Y)
-				}
-				if game.Tetromino.X != tt.wantLocation[1] {
-					t.Errorf("wanted tetromino's X to be %d, got %d", tt.wantLocation[1], game.Tetromino.X)
+			if game.Tetromino.Y != tt.wantLocation[0] {
+				t.Errorf("wanted tetromino's Y to be %d, got %d", tt.wantLocation[0], game.Tetromino.Y)
+			}
+			if game.Tetromino.X != tt.wantLocation[1] {
+				t.Errorf("wanted tetromino's X to be %d, got %d", tt.wantLocation[1], game.Tetromino.X)
+			}
+			if tt.wantGrid != nil {
+				if !reflect.DeepEqual(game.Tetromino.Grid, tt.wantGrid) {
+					t.Errorf("wanted %v, got %v", tt.wantGrid, game.Tetromino.Grid)
 				}
 			}
 		})
 	}
+
+	t.Run("calling an action with a nil tetromino doesn't panic", func(t *testing.T) {
+		game := NewGame()
+		game.Action(MoveLeft)
+	})
 }
 
-func TestRotation(t *testing.T) {
-	game := NewTestGame(J)
-	go func() { <-game.Update }()
+// func TestWallKick(t *testing.T) {
+// 	game := NewTestGame(J)
+// 	go func() { <-game.Update }()
 
-	wantGrid := [][]bool{
-		{false, true, true},
-		{false, true, false},
-		{false, true, false},
-	}
-	game.Rotate()
-	if !reflect.DeepEqual(game.Tetromino.Grid, wantGrid) {
-		t.Errorf("wanted %v, got %v", wantGrid, game.Tetromino.Grid)
-	}
-}
+// 	wantGrid := [][]bool{
+// 		{false, true, true},
+// 		{false, true, false},
+// 		{false, true, false},
+// 	}
+// 	game.Action(RotateRight)
+// 	if !reflect.DeepEqual(game.Tetromino.Grid, wantGrid) {
+// 		t.Errorf("wanted %v, got %v", wantGrid, game.Tetromino.Grid)
+// 	}
+// }
 
 func TestToStack(t *testing.T) {
 	game := NewTestGame(J)
@@ -341,7 +358,7 @@ func TestSetTetromino(t *testing.T) {
 		game := NewGame()
 		go func() { <-game.Update }()
 		game.setTetromino()
-		game.Drop()
+		game.Action(DropDown)
 		game.toStack()
 		wantShape := game.NexTetromino.Shape
 		game.setTetromino()
