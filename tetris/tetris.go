@@ -76,8 +76,8 @@ func (g *Game) Start() {
 		g.GameOver <- true
 		return
 	}
-	g.ticker = time.NewTicker(setTime(g.Level))
 	g.setTetromino()
+	g.ticker = time.NewTicker(setTime(g.Level))
 	g.Update <- true
 	go func() {
 		for range g.ticker.C {
@@ -86,13 +86,11 @@ func (g *Game) Start() {
 				g.toStack()
 				g.clearLines()
 				g.setLevel()
-				g.Update <- true
-
 				g.Start()
 			} else {
 				g.Tetromino.Y--
-				g.Update <- true
 			}
+			g.Update <- true
 		}
 	}()
 }
