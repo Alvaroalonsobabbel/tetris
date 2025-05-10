@@ -270,10 +270,10 @@ func TestWallKick(t *testing.T) {
 			action: RotateLeft,
 			setR: func(g *Game) {
 				// for this case we put the tetromino against the left wall
-				g.Tetromino.X = -1
+				g.Tetromino.X = -2
 				g.Action(RotateRight)
 			},
-			wantX: 1,
+			wantX: 0,
 			wantY: 10,
 		},
 		{
@@ -320,6 +320,68 @@ func TestWallKick(t *testing.T) {
 			setR:       func(g *Game) { g.Action(RotateRight) },
 			wantX:      2,
 			wantY:      8,
+		},
+		{
+			name: "I tetromino, case R>2, test 2 (-1, 0)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . . . . . . . O
+			// 9	. . . . . . . . . O
+			// 8	. . . . . . . . . O
+			// 7    . . . . . . . . . O
+			shape:  I,
+			action: RotateRight,
+			setR: func(g *Game) {
+				// for this case we put the tetromino against the right wall
+				g.Tetromino.X = 7
+				g.Action(RotateRight)
+			},
+			wantX: 6,
+			wantY: 10,
+		},
+		{
+			name: "I tetromino, case R>2, test 3 (2, 0)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	O . . . . . . . . .
+			// 9	O . . . . . . . . .
+			// 8	O . . . . . . . . .
+			// 7    O . . . . . . . . .
+			shape:  I,
+			action: RotateRight,
+			setR: func(g *Game) {
+				// for this case we put the tetromino against the left wall
+				g.Tetromino.X = -2
+				g.Action(RotateRight)
+			},
+			wantX: 0,
+			wantY: 10,
+		},
+		{
+			name: "I tetromino, case R>2, test 4 (-1, 2)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . . . O . . . .
+			// 9	. . . . . O . . . .
+			// 8	. . . X . O X . . .
+			// 7    . . . . . O . . . .
+			shape:      I,
+			action:     RotateRight,
+			blockStack: [][]int{{8, 3}, {8, 6}},
+			setR:       func(g *Game) { g.Action(RotateRight) },
+			wantX:      2,
+			wantY:      12,
+		},
+		{
+			name: "I tetromino, case R>2, test 5 (2, -1)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . X . O . . . .
+			// 9	. . . . . O . . . .
+			// 8	. . . X . O X . . .
+			// 7    . . . . . O . . . .
+			shape:      I,
+			action:     RotateRight,
+			blockStack: [][]int{{8, 3}, {8, 6}, {10, 3}},
+			setR:       func(g *Game) { g.Action(RotateRight) },
+			wantX:      5,
+			wantY:      9,
 		},
 	}
 	for _, tt := range tests {
