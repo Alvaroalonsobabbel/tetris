@@ -383,6 +383,74 @@ func TestWallKick(t *testing.T) {
 			wantX:      5,
 			wantY:      9,
 		},
+		{
+			name: "I tetromino, case 2>R, test 2 (1, 0)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . . . . . . . .
+			// 9	. . . . . X . . . .
+			// 8	. . . O O O O . . .
+			// 7    . . . . . . . . . .
+			shape:      I,
+			action:     RotateLeft,
+			blockStack: [][]int{{9, 5}},
+			setR: func(g *Game) {
+				g.Action(RotateRight)
+				g.Action(RotateRight)
+			},
+			wantX: 4,
+			wantY: 10,
+		},
+		{
+			name: "I tetromino, case 2>R, test 3 (-2, 0)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . . . . . . . .
+			// 9	. . . . . X X . . .
+			// 8	. . . O O O O . . .
+			// 7    . . . . . . . . . .
+			shape:      I,
+			action:     RotateLeft,
+			blockStack: [][]int{{9, 5}, {9, 6}},
+			setR: func(g *Game) {
+				g.Action(RotateRight)
+				g.Action(RotateRight)
+			},
+			wantX: 1,
+			wantY: 10,
+		},
+		{
+			name: "I tetromino, case 2>R, test 4 (1, -2)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . . . . . . . .
+			// 9	. . . . . X X . . .
+			// 8	. . . O O O O . . .
+			// 7    . . . X . . . . . .
+			shape:      I,
+			action:     RotateLeft,
+			blockStack: [][]int{{9, 5}, {9, 6}, {7, 3}},
+			setR: func(g *Game) {
+				g.Action(RotateRight)
+				g.Action(RotateRight)
+			},
+			wantX: 4,
+			wantY: 8,
+		},
+		{
+			name: "I tetromino, case 2>R, test 5 (-2, 1)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . . . . . . . .
+			// 9	. . . . . X X . . .
+			// 8	. . . O O O O . . .
+			// 7    . . . X . . X . . .
+			shape:      I,
+			action:     RotateLeft,
+			blockStack: [][]int{{9, 5}, {9, 6}, {7, 3}, {7, 6}},
+			setR: func(g *Game) {
+				g.Action(RotateRight)
+				g.Action(RotateRight)
+			},
+			wantX: 1,
+			wantY: 11,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
