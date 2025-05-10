@@ -47,7 +47,6 @@ type Game struct {
 	Update     chan bool
 	Level      int
 	LinesClear int
-	// options? like ghost piece
 }
 
 func NewGame() *Game {
@@ -77,6 +76,7 @@ func (g *Game) Start() {
 		return
 	}
 	g.setTetromino()
+	g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
 	g.ticker = time.NewTicker(setTime(g.Level))
 	g.Update <- true
 	go func() {
@@ -89,6 +89,7 @@ func (g *Game) Start() {
 				g.Start()
 			} else {
 				g.Tetromino.Y--
+				g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
 			}
 			g.Update <- true
 		}
@@ -115,16 +116,13 @@ func (g *Game) Action(a Action) {
 			g.Tetromino.Y--
 		}
 	case DropDown:
-		var delta int
-		for !g.isCollision(0, delta, g.Tetromino) {
-			delta--
-		}
-		g.Tetromino.Y += delta + 1
+		g.Tetromino.Y += g.dropDownDelta()
 	case RotateRight:
 		g.rotate(a)
 	case RotateLeft:
 		g.rotate(a)
 	}
+	g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
 	g.Update <- true
 }
 
@@ -267,6 +265,14 @@ func (g *Game) setLevel() {
 	if l > g.Level {
 		g.Level = l
 	}
+}
+
+func (g *Game) dropDownDelta() int {
+	var delta int
+	for !g.isCollision(0, delta, g.Tetromino) {
+		delta--
+	}
+	return delta + 1
 }
 
 type bag struct {

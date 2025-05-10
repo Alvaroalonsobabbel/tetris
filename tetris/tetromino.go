@@ -23,10 +23,11 @@ var shapeMap = map[Shape]func() *Tetromino{
 }
 
 type Tetromino struct {
-	Grid  [][]bool
-	X     int
-	Y     int
-	Shape Shape
+	Grid   [][]bool
+	X      int
+	Y      int
+	GhostY int // https://tetris.wiki/Ghost_piece
+	Shape  Shape
 }
 
 /*
