@@ -1,5 +1,7 @@
 package tetris
 
+import "container/ring"
+
 type Shape string
 
 const (
@@ -10,6 +12,12 @@ const (
 	S Shape = "S"
 	Z Shape = "Z"
 	T Shape = "T"
+
+	// Rotation states
+	rState0 = "0" // spawn position
+	rStateR = "R" // one step clockwise from spawn
+	rStateL = "L" // one step counter-clockwise from spawn
+	rState2 = "2" // two steps in any direction from spawn
 )
 
 var shapeMap = map[Shape]func() *Tetromino{
@@ -28,6 +36,7 @@ type Tetromino struct {
 	Y      int
 	GhostY int // https://tetris.wiki/Ghost_piece
 	Shape  Shape
+	rState *ring.Ring
 }
 
 /*
@@ -51,9 +60,10 @@ func newI() *Tetromino {
 			{false, false, false, false},
 			{false, false, false, false},
 		},
-		X:     3,
-		Y:     20,
-		Shape: I,
+		X:      3,
+		Y:      20,
+		Shape:  I,
+		rState: newRState(),
 	}
 }
 
@@ -75,9 +85,10 @@ func newJ() *Tetromino {
 			{true, true, true},
 			{false, false, false},
 		},
-		X:     3,
-		Y:     19,
-		Shape: J,
+		X:      3,
+		Y:      19,
+		Shape:  J,
+		rState: newRState(),
 	}
 }
 
@@ -99,9 +110,10 @@ func newL() *Tetromino {
 			{true, true, true},
 			{false, false, false},
 		},
-		X:     3,
-		Y:     19,
-		Shape: L,
+		X:      3,
+		Y:      19,
+		Shape:  L,
+		rState: newRState(),
 	}
 }
 
@@ -144,9 +156,10 @@ func newS() *Tetromino {
 			{true, true, false},
 			{false, false, false},
 		},
-		X:     3,
-		Y:     19,
-		Shape: S,
+		X:      3,
+		Y:      19,
+		Shape:  S,
+		rState: newRState(),
 	}
 }
 
@@ -168,9 +181,10 @@ func newZ() *Tetromino {
 			{false, true, true},
 			{false, false, false},
 		},
-		X:     3,
-		Y:     19,
-		Shape: Z,
+		X:      3,
+		Y:      19,
+		Shape:  Z,
+		rState: newRState(),
 	}
 }
 
@@ -192,8 +206,21 @@ func newT() *Tetromino {
 			{true, true, true},
 			{false, false, false},
 		},
-		X:     3,
-		Y:     19,
-		Shape: T,
+		X:      3,
+		Y:      19,
+		Shape:  T,
+		rState: newRState(),
 	}
+}
+
+func newRState() *ring.Ring {
+	ring := ring.New(4)
+	ring.Value = rStateR
+	ring = ring.Next()
+	ring.Value = rState2
+	ring = ring.Next()
+	ring.Value = rStateL
+	ring = ring.Next()
+	ring.Value = rState0
+	return ring
 }

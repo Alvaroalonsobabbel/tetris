@@ -126,8 +126,8 @@ func (g *Game) Action(a Action) {
 	g.Update <- true
 }
 
-// Rotates the tetromino
 func (g *Game) rotate(a Action) {
+	// https://tetris.wiki/Super_Rotation_System
 	if g.Tetromino.Shape == O { // the O shape doesn't rotate.
 		return
 	}
@@ -160,9 +160,67 @@ func (g *Game) rotate(a Action) {
 		Y:    g.Tetromino.Y,
 	}
 
-	// TODO: implement wall kicks
-	if !g.isCollision(0, 0, testTetromino) {
-		g.Tetromino.Grid = test
+	wallKickMap := map[string]map[string][][]int{
+		"all": {
+			"0>R": [][]int{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
+			"R>0": [][]int{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
+			"R>2": [][]int{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
+			"2>R": [][]int{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
+			"2>L": [][]int{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
+			"L>2": [][]int{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}},
+			"L>0": [][]int{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}},
+			"0>L": [][]int{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
+		},
+		"I": {
+			"0>R": [][]int{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
+			"R>0": [][]int{{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
+			"R>2": [][]int{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
+			"2>R": [][]int{{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}},
+			"2>L": [][]int{{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
+			"L>2": [][]int{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
+			"L>0": [][]int{{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}},
+			"0>L": [][]int{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
+		},
+	}
+
+	var rCase string
+	switch {
+	case g.Tetromino.rState.Value == rState0 && a == RotateRight:
+		rCase = "0>R"
+	case g.Tetromino.rState.Value == rStateR && a == RotateLeft:
+		rCase = "R>0"
+	case g.Tetromino.rState.Value == rStateR && a == RotateRight:
+		rCase = "R>2"
+	case g.Tetromino.rState.Value == rState2 && a == RotateLeft:
+		rCase = "2>R"
+	case g.Tetromino.rState.Value == rState2 && a == RotateRight:
+		rCase = "2>L"
+	case g.Tetromino.rState.Value == rStateL && a == RotateLeft:
+		rCase = "L>2"
+	case g.Tetromino.rState.Value == rStateL && a == RotateRight:
+		rCase = "L>0"
+	case g.Tetromino.rState.Value == rState0 && a == RotateLeft:
+		rCase = "0>L"
+	}
+
+	var rGroup = "all"
+	if g.Tetromino.Shape == I {
+		rGroup = "I"
+	}
+
+	for _, v := range wallKickMap[rGroup][rCase] {
+		if !g.isCollision(v[0], v[1], testTetromino) {
+			g.Tetromino.Grid = test
+			g.Tetromino.X += v[0]
+			g.Tetromino.Y += v[1]
+			switch a {
+			case RotateRight:
+				g.Tetromino.rState = g.Tetromino.rState.Next()
+			case RotateLeft:
+				g.Tetromino.rState = g.Tetromino.rState.Prev()
+			}
+			return
+		}
 	}
 }
 

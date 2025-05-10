@@ -201,20 +201,63 @@ func TestMoveActions(t *testing.T) {
 	})
 }
 
-// func TestWallKick(t *testing.T) {
-// 	game := NewTestGame(J)
-// 	go func() { <-game.Update }()
+func TestWallKick(t *testing.T) {
+	// for this test we set the tetromino in the middle of the stack to
+	// allow for setting up multiple blocks in order to test all the cases.
+	// we also don't test for case 1 (0,0) since that donesn't wall kick.
+	tests := []struct {
+		name         string
+		shape        Shape
+		action       Action
+		setup        func(g *Game)
+		wantX, wantY int
+	}{
+		{
+			name: "I tetromino, case 0>R, test 2",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . . . X . . . .
+			// 9	. . . O O O O . . .
+			shape:  I,
+			action: RotateRight,
+			setup: func(g *Game) {
+				g.Stack[10][5] = J
+			},
+			wantX: 1,
+			wantY: 10,
+		},
+		{
+			name: "I tetromino, case 0>R, test 3",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . X . X . . . .
+			// 9	. . . O O O O . . .
+			// 8	. . . . . . . . . .
+			shape:  I,
+			action: RotateRight,
+			setup: func(g *Game) {
+				g.Stack[10][5] = J
+				g.Stack[10][3] = J
+			},
+			wantX: 4,
+			wantY: 10,
+		},
+	}
 
-// 	wantGrid := [][]bool{
-// 		{false, true, true},
-// 		{false, true, false},
-// 		{false, true, false},
-// 	}
-// 	game.Action(RotateRight)
-// 	if !reflect.DeepEqual(game.Tetromino.Grid, wantGrid) {
-// 		t.Errorf("wanted %v, got %v", wantGrid, game.Tetromino.Grid)
-// 	}
-// }
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			game := NewTestGame(tt.shape)
+			game.Tetromino.Y = 10
+			tt.setup(game)
+			go func() { <-game.Update }()
+			game.Action(tt.action)
+			if tt.wantX != game.Tetromino.X {
+				t.Errorf("wanted X to be %d, got %d", tt.wantX, game.Tetromino.X)
+			}
+			if tt.wantY != game.Tetromino.Y {
+				t.Errorf("wanted Y to be %d, got %d", tt.wantY, game.Tetromino.Y)
+			}
+		})
+	}
+}
 
 func TestToStack(t *testing.T) {
 	game := NewTestGame(J)
