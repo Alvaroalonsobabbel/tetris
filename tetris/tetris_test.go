@@ -204,41 +204,60 @@ func TestMoveActions(t *testing.T) {
 func TestWallKick(t *testing.T) {
 	// for this test we set the tetromino in the middle of the stack to
 	// allow for setting up multiple blocks in order to test all the cases.
-	// we also don't test for case 1 (0,0) since that donesn't wall kick.
+	// we don't test for case 0 (0,0) since that donesn't wall kick.
 	tests := []struct {
 		name         string
 		shape        Shape
 		action       Action
-		setup        func(g *Game)
+		blockStack   [][]int
+		setR         func(g *Game)
 		wantX, wantY int
 	}{
 		{
-			name: "I tetromino, case 0>R, test 2",
+			name: "I tetromino, case 0>R, test 2 (-2,0)",
 			// .	0 1 2 3 4 5 6 7 8 9
 			// 10	. . . . . X . . . .
 			// 9	. . . O O O O . . .
-			shape:  I,
-			action: RotateRight,
-			setup: func(g *Game) {
-				g.Stack[10][5] = J
-			},
-			wantX: 1,
-			wantY: 10,
+			shape:      I,
+			action:     RotateRight,
+			blockStack: [][]int{{10, 5}},
+			wantX:      1,
+			wantY:      10,
 		},
 		{
-			name: "I tetromino, case 0>R, test 3",
+			name: "I tetromino, case 0>R, test 3 (1, 0)",
 			// .	0 1 2 3 4 5 6 7 8 9
 			// 10	. . . X . X . . . .
 			// 9	. . . O O O O . . .
-			// 8	. . . . . . . . . .
-			shape:  I,
-			action: RotateRight,
-			setup: func(g *Game) {
-				g.Stack[10][5] = J
-				g.Stack[10][3] = J
-			},
-			wantX: 4,
-			wantY: 10,
+			shape:      I,
+			action:     RotateRight,
+			blockStack: [][]int{{10, 5}, {10, 3}},
+			wantX:      4,
+			wantY:      10,
+		},
+		{
+			name: "I tetromino, case 0>R, test 4 (-2, -1)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . X . X . . . .
+			// 9	. . . O O O O . . .
+			// 8	. . . . . . X . . .
+			shape:      I,
+			action:     RotateRight,
+			blockStack: [][]int{{8, 6}, {10, 5}, {10, 3}},
+			wantX:      1,
+			wantY:      9,
+		},
+		{
+			name: "I tetromino, case 0>R, test 5 (1, 2)",
+			// .	0 1 2 3 4 5 6 7 8 9
+			// 10	. . . X . X . . . .
+			// 9	. . . O O O O . . .
+			// 8	. . . X . . X . . .
+			shape:      I,
+			action:     RotateRight,
+			blockStack: [][]int{{8, 3}, {8, 6}, {10, 5}, {10, 3}},
+			wantX:      4,
+			wantY:      12,
 		},
 	}
 
@@ -246,7 +265,12 @@ func TestWallKick(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			game := NewTestGame(tt.shape)
 			game.Tetromino.Y = 10
-			tt.setup(game)
+			if tt.setR != nil {
+				tt.setR(game)
+			}
+			for _, v := range tt.blockStack {
+				game.Stack[v[0]][v[1]] = J
+			}
 			go func() { <-game.Update }()
 			game.Action(tt.action)
 			if tt.wantX != game.Tetromino.X {
