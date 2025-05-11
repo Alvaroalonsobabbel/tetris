@@ -220,10 +220,11 @@ func (g *Tetris) isCollision(deltaX, deltaY int, t *Tetromino) bool {
 }
 
 func (g *Tetris) toStack() {
-	for iy, y := range g.Tetromino.Grid {
-		for ix, x := range y {
-			if x {
-				g.Stack[g.Tetromino.Y-iy][ix+g.Tetromino.X] = g.Tetromino.Shape
+	// moves the tetromino to the stack
+	for ix, x := range g.Tetromino.Grid {
+		for iy, y := range x {
+			if y {
+				g.Stack[g.Tetromino.Y-ix][g.Tetromino.X+iy] = g.Tetromino.Shape
 			}
 		}
 	}
