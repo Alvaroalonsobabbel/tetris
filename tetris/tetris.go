@@ -47,7 +47,7 @@ type Tetris struct {
 	bag    *bag
 }
 
-func newGame() *Tetris {
+func newTetris() *Tetris {
 	return &Tetris{
 		Stack: emptyStack(),
 		Level: 1,

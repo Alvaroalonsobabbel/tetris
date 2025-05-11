@@ -7,9 +7,9 @@ import (
 )
 
 func TestStack(t *testing.T) {
-	t.Run("New game starts with empty stack", func(t *testing.T) {
-		game := NewTestTetris(J)
-		for _, c := range game.Stack {
+	t.Run("New tetris starts with empty stack", func(t *testing.T) {
+		tetris := NewTestTetris(J)
+		for _, c := range tetris.Stack {
 			for _, r := range c {
 				if r != "" {
 					t.Errorf("Expected cell to be an empty string, got %v", r)
@@ -65,10 +65,10 @@ func TestIsCollision(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			game := NewTestTetris(J)
-			game.Stack[17][5] = "C"
+			tetris := NewTestTetris(J)
+			tetris.Stack[17][5] = "C"
 
-			c := game.isCollision(tt.deltaX, tt.deltaY, game.Tetromino)
+			c := tetris.isCollision(tt.deltaX, tt.deltaY, tetris.Tetromino)
 			if c && !tt.wantCollision {
 				t.Errorf("Expected no collision")
 			}
@@ -163,20 +163,20 @@ func TestMoveActions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			game := NewTestTetris(J)
+			tetris := NewTestTetris(J)
 			if tt.updateStack != nil {
-				tt.updateStack(game)
+				tt.updateStack(tetris)
 			}
-			tt.action(game)
-			if game.Tetromino.Y != tt.wantLocation[0] {
-				t.Errorf("wanted tetromino's Y to be %d, got %d", tt.wantLocation[0], game.Tetromino.Y)
+			tt.action(tetris)
+			if tetris.Tetromino.Y != tt.wantLocation[0] {
+				t.Errorf("wanted tetromino's Y to be %d, got %d", tt.wantLocation[0], tetris.Tetromino.Y)
 			}
-			if game.Tetromino.X != tt.wantLocation[1] {
-				t.Errorf("wanted tetromino's X to be %d, got %d", tt.wantLocation[1], game.Tetromino.X)
+			if tetris.Tetromino.X != tt.wantLocation[1] {
+				t.Errorf("wanted tetromino's X to be %d, got %d", tt.wantLocation[1], tetris.Tetromino.X)
 			}
 			if tt.wantGrid != nil {
-				if !reflect.DeepEqual(game.Tetromino.Grid, tt.wantGrid) {
-					t.Errorf("wanted %v, got %v", tt.wantGrid, game.Tetromino.Grid)
+				if !reflect.DeepEqual(tetris.Tetromino.Grid, tt.wantGrid) {
+					t.Errorf("wanted %v, got %v", tt.wantGrid, tetris.Tetromino.Grid)
 				}
 			}
 		})
@@ -437,41 +437,41 @@ func TestWallKick(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			game := NewTestTetris(tt.shape)
-			game.Tetromino.Y = 10
+			tetris := NewTestTetris(tt.shape)
+			tetris.Tetromino.Y = 10
 			if tt.setR != nil {
-				tt.setR(game)
+				tt.setR(tetris)
 			}
 			if tt.blockStack != nil {
 				for _, v := range tt.blockStack {
-					game.Stack[v[0]][v[1]] = J
+					tetris.Stack[v[0]][v[1]] = J
 				}
 			}
-			game.rotate(tt.action)
-			if tt.wantX != game.Tetromino.X {
-				t.Errorf("wanted X to be %d, got %d", tt.wantX, game.Tetromino.X)
+			tetris.rotate(tt.action)
+			if tt.wantX != tetris.Tetromino.X {
+				t.Errorf("wanted X to be %d, got %d", tt.wantX, tetris.Tetromino.X)
 			}
-			if tt.wantY != game.Tetromino.Y {
-				t.Errorf("wanted Y to be %d, got %d", tt.wantY, game.Tetromino.Y)
+			if tt.wantY != tetris.Tetromino.Y {
+				t.Errorf("wanted Y to be %d, got %d", tt.wantY, tetris.Tetromino.Y)
 			}
 		})
 	}
 }
 
 func TestToStack(t *testing.T) {
-	game := NewTestTetris(J)
-	game.toStack()
+	tetris := NewTestTetris(J)
+	tetris.toStack()
 	wantStack := emptyStack()
 	wantStack[19][3] = J
 	wantStack[18][3] = J
 	wantStack[18][4] = J
 	wantStack[18][5] = J
 
-	if !reflect.DeepEqual(game.Stack, wantStack) {
-		t.Errorf("wanted %v, got %v", wantStack, game.Stack)
+	if !reflect.DeepEqual(tetris.Stack, wantStack) {
+		t.Errorf("wanted %v, got %v", wantStack, tetris.Stack)
 	}
-	if game.Tetromino != nil {
-		t.Errorf("wanted Tetromino to be nil, got %v", game.Tetromino)
+	if tetris.Tetromino != nil {
+		t.Errorf("wanted Tetromino to be nil, got %v", tetris.Tetromino)
 	}
 }
 
@@ -488,7 +488,7 @@ func TestRandomBag(t *testing.T) {
 		}
 	})
 
-	t.Run("first draw of the game should always be I, J, L or T", func(t *testing.T) {
+	t.Run("first draw should always be I, J, L or T", func(t *testing.T) {
 		t.Parallel()
 		for range 10 {
 			go func() {
@@ -518,22 +518,22 @@ func TestRandomBag(t *testing.T) {
 }
 
 func TestClearLines(t *testing.T) {
-	game := NewTestTetris(J)
+	tetris := NewTestTetris(J)
 	for ii := range 2 {
 		for i := range 10 {
-			game.Stack[ii][i] = J
+			tetris.Stack[ii][i] = J
 		}
 	}
-	game.Stack[2][0] = J
-	game.LinesClear = 9
-	game.clearLines()
+	tetris.Stack[2][0] = J
+	tetris.LinesClear = 9
+	tetris.clearLines()
 	wantStack := emptyStack()
 	wantStack[0][0] = J
-	if !reflect.DeepEqual(game.Stack, wantStack) {
-		t.Errorf("wanted %v, got %v", wantStack, game.Stack)
+	if !reflect.DeepEqual(tetris.Stack, wantStack) {
+		t.Errorf("wanted %v, got %v", wantStack, tetris.Stack)
 	}
-	if game.LinesClear != 11 {
-		t.Errorf("wanted 11 lines clear, got %d", game.LinesClear)
+	if tetris.LinesClear != 11 {
+		t.Errorf("wanted 11 lines clear, got %d", tetris.LinesClear)
 	}
 }
 
@@ -553,48 +553,48 @@ func TestSetLevel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("for %d lines should have level %d", tt.lines, tt.wantLevel), func(t *testing.T) {
-			game := newGame()
-			game.LinesClear = tt.lines
-			game.setLevel()
-			if game.Level != tt.wantLevel {
-				t.Errorf("wanted level %d, got %d", tt.wantLevel, game.Level)
+			tetris := newTetris()
+			tetris.LinesClear = tt.lines
+			tetris.setLevel()
+			if tetris.Level != tt.wantLevel {
+				t.Errorf("wanted level %d, got %d", tt.wantLevel, tetris.Level)
 			}
 		})
 	}
 
-	t.Run("game with set level is not overriden until lines > level", func(t *testing.T) {
-		game := newGame()
-		game.Level = 5
-		game.LinesClear = 1
-		game.setLevel()
-		if game.Level != 5 {
-			t.Errorf("wanted level 5, got %d", game.Level)
+	t.Run("set level is not overriden until lines > level", func(t *testing.T) {
+		tetris := newTetris()
+		tetris.Level = 5
+		tetris.LinesClear = 1
+		tetris.setLevel()
+		if tetris.Level != 5 {
+			t.Errorf("wanted level 5, got %d", tetris.Level)
 		}
-		game.LinesClear = 50
-		game.setLevel()
-		if game.Level != 6 {
-			t.Errorf("wanted level 6, got %d", game.Level)
+		tetris.LinesClear = 50
+		tetris.setLevel()
+		if tetris.Level != 6 {
+			t.Errorf("wanted level 6, got %d", tetris.Level)
 		}
 	})
 }
 
 func TestSetTetromino(t *testing.T) {
-	t.Run("on new game it populates a current and next tetromino", func(t *testing.T) {
-		game := newGame()
-		game.setTetromino()
-		if game.Tetromino == nil || game.NexTetromino == nil {
-			t.Errorf("want Tetromino and NextTetromino to not be nil, got: %v, %v", game.Tetromino, game.NexTetromino)
+	t.Run("first time it populates current and next tetromino", func(t *testing.T) {
+		tetris := newTetris()
+		tetris.setTetromino()
+		if tetris.Tetromino == nil || tetris.NexTetromino == nil {
+			t.Errorf("want Tetromino and NextTetromino to not be nil, got: %v, %v", tetris.Tetromino, tetris.NexTetromino)
 		}
 	})
 	t.Run("after tetromino has been transferred to the stack, moves next tetromino to current", func(t *testing.T) {
-		game := newGame()
-		game.setTetromino()
-		game.down()
-		game.toStack()
-		wantShape := game.NexTetromino.Shape
-		game.setTetromino()
-		if game.Tetromino.Shape != wantShape {
-			t.Errorf("wanted current tetromino to have shape %v, got %v", wantShape, game.Tetromino.Shape)
+		tetris := newTetris()
+		tetris.setTetromino()
+		tetris.down()
+		tetris.toStack()
+		wantShape := tetris.NexTetromino.Shape
+		tetris.setTetromino()
+		if tetris.Tetromino.Shape != wantShape {
+			t.Errorf("wanted current tetromino to have shape %v, got %v", wantShape, tetris.Tetromino.Shape)
 		}
 	})
 }
