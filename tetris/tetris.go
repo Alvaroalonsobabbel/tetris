@@ -40,8 +40,6 @@ type Tetris struct {
 	Tetromino    *Tetromino
 	NexTetromino *Tetromino
 
-	GameOver   chan bool
-	Update     chan bool
 	Level      int
 	LinesClear int
 
@@ -49,81 +47,43 @@ type Tetris struct {
 	bag    *bag
 }
 
-func NewGame() *Tetris {
+func newGame() *Tetris {
 	return &Tetris{
-		Stack:    emptyStack(),
-		Level:    1,
-		GameOver: make(chan bool),
-		Update:   make(chan bool),
-		bag:      newBag(),
+		Stack: emptyStack(),
+		Level: 1,
+		bag:   newBag(),
 	}
 }
 
-// NewTestGame creates a new game with a test tetromino.
-func NewTestGame(shape Shape) *Tetris {
+// NewTestTetris creates a new Tetris struct with a test tetromino.
+func NewTestTetris(shape Shape) *Tetris {
 	return &Tetris{
 		Tetromino: shapeMap[shape](),
 		Stack:     emptyStack(),
 		Level:     1,
-		GameOver:  make(chan bool),
-		Update:    make(chan bool),
 	}
 }
 
-func (g *Tetris) Start() {
-	if g.NexTetromino != nil && g.isCollision(0, 0, g.NexTetromino) {
-		g.GameOver <- true
-		return
+func (g *Tetris) left() {
+	if !g.isCollision(-1, 0, g.Tetromino) {
+		g.Tetromino.X--
 	}
-	g.setTetromino()
-	g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
-	g.ticker = time.NewTicker(setTime(g.Level))
-	g.Update <- true
-	go func() {
-		for range g.ticker.C {
-			if g.isCollision(0, -1, g.Tetromino) {
-				g.ticker.Stop()
-				g.toStack()
-				g.clearLines()
-				g.setLevel()
-				g.Start()
-			} else {
-				g.Tetromino.Y--
-				g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
-			}
-			g.Update <- true
-		}
-	}()
 }
 
-func (g *Tetris) Action(a Action) {
-	if g.Tetromino == nil {
-		// between toStack() and next round's setTetromino() Tetromino is nil.
-		// we return here to avoid user commands to cause panic.
-		return
+func (g *Tetris) right() {
+	if !g.isCollision(1, 0, g.Tetromino) {
+		g.Tetromino.X++
 	}
-	switch a {
-	case MoveLeft:
-		if !g.isCollision(-1, 0, g.Tetromino) {
-			g.Tetromino.X--
-		}
-	case MoveRight:
-		if !g.isCollision(1, 0, g.Tetromino) {
-			g.Tetromino.X++
-		}
-	case MoveDown:
-		if !g.isCollision(0, -1, g.Tetromino) {
-			g.Tetromino.Y--
-		}
-	case DropDown:
-		g.Tetromino.Y += g.dropDownDelta()
-	case RotateRight:
-		g.rotate(a)
-	case RotateLeft:
-		g.rotate(a)
+}
+
+func (g *Tetris) down() {
+	if !g.isCollision(0, -1, g.Tetromino) {
+		g.Tetromino.Y--
 	}
-	g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
-	g.Update <- true
+}
+
+func (g *Tetris) drop() {
+	g.Tetromino.Y += g.dropDownDelta()
 }
 
 func (g *Tetris) rotate(a Action) {
@@ -279,20 +239,20 @@ func (g *Tetris) clearLines() {
 		}
 	}
 
-	// animate the line deletion
-	for i := range 8 {
-		if i%2 == 0 {
-			for _, v := range l {
-				g.Stack[v] = make([]Shape, 10)
-			}
-		} else {
-			for k, v := range complete {
-				g.Stack[k] = v
-			}
-		}
-		g.Update <- true
-		time.Sleep(40 * time.Millisecond)
-	}
+	// TODO: animate the line deletion
+	// for i := range 8 {
+	// 	if i%2 == 0 {
+	// 		for _, v := range l {
+	// 			g.Stack[v] = make([]Shape, 10)
+	// 		}
+	// 	} else {
+	// 		for k, v := range complete {
+	// 			g.Stack[k] = v
+	// 		}
+	// 	}
+	// 	g.Update <- true
+	// 	time.Sleep(40 * time.Millisecond)
+	// }
 
 	// remove complete lines in reverse order to avoid index shift issues.
 	for i := len(l) - 1; i >= 0; i-- {
