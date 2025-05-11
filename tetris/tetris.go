@@ -43,16 +43,17 @@ type Tetris struct {
 	Level      int
 	LinesClear int
 
-	ticker *time.Ticker
-	bag    *bag
+	bag *bag
 }
 
 func newTetris() *Tetris {
-	return &Tetris{
+	t := &Tetris{
 		Stack: emptyStack(),
 		Level: 1,
 		bag:   newBag(),
 	}
+	t.setTetromino()
+	return t
 }
 
 // NewTestTetris creates a new Tetris struct with a test tetromino.
