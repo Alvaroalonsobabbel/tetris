@@ -30,10 +30,7 @@ const (
 	RotateLeft  Action = "rotateccw" // Rotates the Tetromino counter-clockwise.
 )
 
-type Game struct {
-	ticker *time.Ticker
-	bag    *bag
-
+type Tetris struct {
 	// Stack is the playfield. 20 rows x 10 columns.
 	// Columns are 0 > 9 left to right and represent the X axis
 	// Rows are 19 > 0 top to bottom and represent the Y axis
@@ -47,10 +44,13 @@ type Game struct {
 	Update     chan bool
 	Level      int
 	LinesClear int
+
+	ticker *time.Ticker
+	bag    *bag
 }
 
-func NewGame() *Game {
-	return &Game{
+func NewGame() *Tetris {
+	return &Tetris{
 		Stack:    emptyStack(),
 		Level:    1,
 		GameOver: make(chan bool),
@@ -60,8 +60,8 @@ func NewGame() *Game {
 }
 
 // NewTestGame creates a new game with a test tetromino.
-func NewTestGame(shape Shape) *Game {
-	return &Game{
+func NewTestGame(shape Shape) *Tetris {
+	return &Tetris{
 		Tetromino: shapeMap[shape](),
 		Stack:     emptyStack(),
 		Level:     1,
@@ -70,7 +70,7 @@ func NewTestGame(shape Shape) *Game {
 	}
 }
 
-func (g *Game) Start() {
+func (g *Tetris) Start() {
 	if g.NexTetromino != nil && g.isCollision(0, 0, g.NexTetromino) {
 		g.GameOver <- true
 		return
@@ -96,7 +96,7 @@ func (g *Game) Start() {
 	}()
 }
 
-func (g *Game) Action(a Action) {
+func (g *Tetris) Action(a Action) {
 	if g.Tetromino == nil {
 		// between toStack() and next round's setTetromino() Tetromino is nil.
 		// we return here to avoid user commands to cause panic.
@@ -126,7 +126,7 @@ func (g *Game) Action(a Action) {
 	g.Update <- true
 }
 
-func (g *Game) rotate(a Action) {
+func (g *Tetris) rotate(a Action) {
 	// https://tetris.wiki/Super_Rotation_System
 	if g.Tetromino.Shape == O { // the O shape doesn't rotate.
 		return
@@ -224,7 +224,7 @@ func (g *Game) rotate(a Action) {
 	}
 }
 
-func (g *Game) setTetromino() {
+func (g *Tetris) setTetromino() {
 	if g.Tetromino == nil && g.NexTetromino == nil {
 		g.Tetromino = g.bag.draw()
 		g.NexTetromino = g.bag.draw()
@@ -234,7 +234,7 @@ func (g *Game) setTetromino() {
 	}
 }
 
-func (g *Game) isCollision(deltaX, deltaY int, t *Tetromino) bool {
+func (g *Tetris) isCollision(deltaX, deltaY int, t *Tetromino) bool {
 	// isCollision() will receive the desired future X and Y tetromino's position
 	// and calculate if there is a collision or if it's out of bounds from the stack
 	for iy, y := range t.Grid {
@@ -258,7 +258,7 @@ func (g *Game) isCollision(deltaX, deltaY int, t *Tetromino) bool {
 	return false
 }
 
-func (g *Game) toStack() {
+func (g *Tetris) toStack() {
 	for iy, y := range g.Tetromino.Grid {
 		for ix, x := range y {
 			if x {
@@ -269,7 +269,7 @@ func (g *Game) toStack() {
 	g.Tetromino = nil
 }
 
-func (g *Game) clearLines() {
+func (g *Tetris) clearLines() {
 	complete := make(map[int][]Shape)
 	var l []int
 	for i, x := range g.Stack {
@@ -303,7 +303,7 @@ func (g *Game) clearLines() {
 	g.LinesClear += len(l)
 }
 
-func (g *Game) setLevel() {
+func (g *Tetris) setLevel() {
 	// set the fixed-goal level system
 	// https://tetris.wiki/Marathon
 	//
@@ -325,7 +325,7 @@ func (g *Game) setLevel() {
 	}
 }
 
-func (g *Game) dropDownDelta() int {
+func (g *Tetris) dropDownDelta() int {
 	var delta int
 	for !g.isCollision(0, delta, g.Tetromino) {
 		delta--
