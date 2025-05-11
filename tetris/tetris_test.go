@@ -599,6 +599,14 @@ func TestSetTetromino(t *testing.T) {
 	})
 }
 
-func TestGameOver(t *testing.T) {
-	// TODO: redo this
+func TestIsGameOver(t *testing.T) {
+	tetris := NewTestTetris(J)
+	tetris.NexTetromino = newJ()
+	if tetris.isGameOver() {
+		t.Error("expected isGameOver() to be false")
+	}
+	tetris.Stack[19][3] = J
+	if !tetris.isGameOver() {
+		t.Error("expected isGameOver() to be true")
+	}
 }

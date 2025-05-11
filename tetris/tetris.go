@@ -16,18 +16,8 @@ import (
 	"math"
 	"math/rand"
 	"slices"
+	"sync"
 	"time"
-)
-
-type Action string
-
-const (
-	MoveLeft    Action = "left"      // Moves the Tetromino one step to the left.
-	MoveRight   Action = "right"     // Moves the Tetromino one step to the right.
-	MoveDown    Action = "down"      // Moves the Tetromino one step down.
-	DropDown    Action = "drop"      // Drops the Tetromino down the stack.
-	RotateRight Action = "rotatecw"  // Rotates the Tetromino clockwise.
-	RotateLeft  Action = "rotateccw" // Rotates the Tetromino counter-clockwise.
 )
 
 type Tetris struct {
@@ -42,6 +32,8 @@ type Tetris struct {
 
 	Level      int
 	LinesClear int
+
+	Mutex sync.RWMutex
 
 	bag *bag
 }
@@ -240,6 +232,9 @@ func (g *Tetris) clearLines() {
 			l = append(l, i)
 		}
 	}
+	if len(l) == 0 {
+		return
+	}
 
 	// TODO: animate the line deletion
 	// for i := range 8 {
@@ -285,6 +280,10 @@ func (g *Tetris) setLevel() {
 	if l > g.Level {
 		g.Level = l
 	}
+}
+
+func (t *Tetris) isGameOver() bool {
+	return t.isCollision(0, 0, t.NexTetromino)
 }
 
 func (g *Tetris) dropDownDelta() int {
