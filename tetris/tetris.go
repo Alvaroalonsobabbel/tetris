@@ -57,43 +57,43 @@ func NewTestTetris(shape Shape) *Tetris {
 	}
 }
 
-func (g *Tetris) action(a Action) {
+func (t *Tetris) action(a Action) {
 	switch a {
 	case MoveLeft:
-		if !g.isCollision(-1, 0, g.Tetromino) {
-			g.Tetromino.X--
+		if !t.isCollision(-1, 0, t.Tetromino) {
+			t.Tetromino.X--
 		}
 	case MoveRight:
-		if !g.isCollision(1, 0, g.Tetromino) {
-			g.Tetromino.X++
+		if !t.isCollision(1, 0, t.Tetromino) {
+			t.Tetromino.X++
 		}
 	case MoveDown:
-		if !g.isCollision(0, -1, g.Tetromino) {
-			g.Tetromino.Y--
+		if !t.isCollision(0, -1, t.Tetromino) {
+			t.Tetromino.Y--
 		}
 	case DropDown:
-		g.Tetromino.Y += g.dropDownDelta()
+		t.Tetromino.Y += t.dropDownDelta()
 	default:
-		g.rotate(a)
+		t.rotate(a)
 	}
-	g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
+	t.Tetromino.GhostY = t.Tetromino.Y + t.dropDownDelta()
 }
 
-func (g *Tetris) rotate(a Action) {
+func (t *Tetris) rotate(a Action) {
 	// https://tetris.wiki/Super_Rotation_System
-	if g.Tetromino.Shape == O { // the O shape doesn't rotate.
+	if t.Tetromino.Shape == O { // the O shape doesn't rotate.
 		return
 	}
 
 	// copies the grid from the current tetromino to test for collisions
-	test := make([][]bool, len(g.Tetromino.Grid))
-	for i := range g.Tetromino.Grid {
-		test[i] = make([]bool, len(g.Tetromino.Grid[i]))
-		copy(test[i], g.Tetromino.Grid[i])
+	test := make([][]bool, len(t.Tetromino.Grid))
+	for i := range t.Tetromino.Grid {
+		test[i] = make([]bool, len(t.Tetromino.Grid[i]))
+		copy(test[i], t.Tetromino.Grid[i])
 	}
 
 	// rotates the grid
-	for ix, x := range g.Tetromino.Grid {
+	for ix, x := range t.Tetromino.Grid {
 		switch a {
 		case RotateRight:
 			col := len(x) - ix - 1
@@ -109,8 +109,8 @@ func (g *Tetris) rotate(a Action) {
 
 	testTetromino := &Tetromino{
 		Grid: test,
-		X:    g.Tetromino.X,
-		Y:    g.Tetromino.Y,
+		X:    t.Tetromino.X,
+		Y:    t.Tetromino.Y,
 	}
 
 	wallKickMap := map[string]map[string][][]int{
@@ -138,60 +138,60 @@ func (g *Tetris) rotate(a Action) {
 
 	var rCase string
 	switch {
-	case g.Tetromino.rState.Value == rState0 && a == RotateRight:
+	case t.Tetromino.rState.Value == rState0 && a == RotateRight:
 		rCase = "0>R"
-	case g.Tetromino.rState.Value == rStateR && a == RotateLeft:
+	case t.Tetromino.rState.Value == rStateR && a == RotateLeft:
 		rCase = "R>0"
-	case g.Tetromino.rState.Value == rStateR && a == RotateRight:
+	case t.Tetromino.rState.Value == rStateR && a == RotateRight:
 		rCase = "R>2"
-	case g.Tetromino.rState.Value == rState2 && a == RotateLeft:
+	case t.Tetromino.rState.Value == rState2 && a == RotateLeft:
 		rCase = "2>R"
-	case g.Tetromino.rState.Value == rState2 && a == RotateRight:
+	case t.Tetromino.rState.Value == rState2 && a == RotateRight:
 		rCase = "2>L"
-	case g.Tetromino.rState.Value == rStateL && a == RotateLeft:
+	case t.Tetromino.rState.Value == rStateL && a == RotateLeft:
 		rCase = "L>2"
-	case g.Tetromino.rState.Value == rStateL && a == RotateRight:
+	case t.Tetromino.rState.Value == rStateL && a == RotateRight:
 		rCase = "L>0"
-	case g.Tetromino.rState.Value == rState0 && a == RotateLeft:
+	case t.Tetromino.rState.Value == rState0 && a == RotateLeft:
 		rCase = "0>L"
 	}
 
 	var rGroup = "all"
-	if g.Tetromino.Shape == I {
+	if t.Tetromino.Shape == I {
 		rGroup = "I"
 	}
 
 	for _, v := range wallKickMap[rGroup][rCase] {
-		if !g.isCollision(v[0], v[1], testTetromino) {
-			g.Tetromino.Grid = test
-			g.Tetromino.X += v[0]
-			g.Tetromino.Y += v[1]
+		if !t.isCollision(v[0], v[1], testTetromino) {
+			t.Tetromino.Grid = test
+			t.Tetromino.X += v[0]
+			t.Tetromino.Y += v[1]
 			switch a {
 			case RotateRight:
-				g.Tetromino.rState = g.Tetromino.rState.Next()
+				t.Tetromino.rState = t.Tetromino.rState.Next()
 			case RotateLeft:
-				g.Tetromino.rState = g.Tetromino.rState.Prev()
+				t.Tetromino.rState = t.Tetromino.rState.Prev()
 			}
 			return
 		}
 	}
 }
 
-func (g *Tetris) setTetromino() {
-	if g.Tetromino == nil && g.NexTetromino == nil {
-		g.Tetromino = g.bag.draw()
-		g.NexTetromino = g.bag.draw()
+func (t *Tetris) setTetromino() {
+	if t.Tetromino == nil && t.NexTetromino == nil {
+		t.Tetromino = t.bag.draw()
+		t.NexTetromino = t.bag.draw()
 	} else {
-		g.Tetromino = g.NexTetromino
-		g.NexTetromino = g.bag.draw()
+		t.Tetromino = t.NexTetromino
+		t.NexTetromino = t.bag.draw()
 	}
-	g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
+	t.Tetromino.GhostY = t.Tetromino.Y + t.dropDownDelta()
 }
 
-func (g *Tetris) isCollision(deltaX, deltaY int, t *Tetromino) bool {
+func (t *Tetris) isCollision(deltaX, deltaY int, tetromino *Tetromino) bool {
 	// isCollision() will receive the desired future X and Y tetromino's position
 	// and calculate if there is a collision or if it's out of bounds from the stack
-	for iy, y := range t.Grid {
+	for iy, y := range tetromino.Grid {
 		for ix, x := range y {
 			// we check only if the tetromino cell is true as we don't
 			// care if the tetromino grid is out of bounds or in collision.
@@ -199,11 +199,11 @@ func (g *Tetris) isCollision(deltaX, deltaY int, t *Tetromino) bool {
 				// the position of the tetromino cell against the stack is:
 				// current X and Y + cell index offset + desired position offset
 				// Y axis decrease to 0 so we need to substract the index
-				yPos := t.Y - iy + deltaY
-				xPos := t.X + ix + deltaX
+				yPos := tetromino.Y - iy + deltaY
+				xPos := tetromino.X + ix + deltaX
 
 				// check if cell is out of bounds for X, Y and against the stack.
-				if yPos < 0 || yPos > 19 || xPos < 0 || xPos > 9 || g.Stack[yPos][xPos] != "" {
+				if yPos < 0 || yPos > 19 || xPos < 0 || xPos > 9 || t.Stack[yPos][xPos] != "" {
 					return true
 				}
 			}
@@ -212,22 +212,22 @@ func (g *Tetris) isCollision(deltaX, deltaY int, t *Tetromino) bool {
 	return false
 }
 
-func (g *Tetris) toStack() {
+func (t *Tetris) toStack() {
 	// moves the tetromino to the stack
-	for ix, x := range g.Tetromino.Grid {
+	for ix, x := range t.Tetromino.Grid {
 		for iy, y := range x {
 			if y {
-				g.Stack[g.Tetromino.Y-ix][g.Tetromino.X+iy] = g.Tetromino.Shape
+				t.Stack[t.Tetromino.Y-ix][t.Tetromino.X+iy] = t.Tetromino.Shape
 			}
 		}
 	}
-	g.Tetromino = nil
+	t.Tetromino = nil
 }
 
-func (g *Tetris) clearLines() {
+func (t *Tetris) clearLines() {
 	complete := make(map[int][]Shape)
 	var l []int
-	for i, x := range g.Stack {
+	for i, x := range t.Stack {
 		if !slices.Contains(x, "") {
 			complete[i] = x
 			l = append(l, i)
@@ -254,14 +254,14 @@ func (g *Tetris) clearLines() {
 
 	// remove complete lines in reverse order to avoid index shift issues.
 	for i := len(l) - 1; i >= 0; i-- {
-		g.Stack = append(g.Stack[:l[i]], g.Stack[l[i]+1:]...)
-		g.Stack = append(g.Stack, make([]Shape, 10))
+		t.Stack = append(t.Stack[:l[i]], t.Stack[l[i]+1:]...)
+		t.Stack = append(t.Stack, make([]Shape, 10))
 	}
 
-	g.LinesClear += len(l)
+	t.LinesClear += len(l)
 }
 
-func (g *Tetris) setLevel() {
+func (t *Tetris) setLevel() {
 	// set the fixed-goal level system
 	// https://tetris.wiki/Marathon
 	//
@@ -271,15 +271,15 @@ func (g *Tetris) setLevel() {
 	// the player will have to clear 50 lines to advance to level 6
 	var l int
 	switch {
-	case g.LinesClear < 10:
+	case t.LinesClear < 10:
 		l = 1
-	case g.LinesClear >= 10 && g.LinesClear < 100:
-		l = (g.LinesClear/10)%10 + 1
-	case g.LinesClear >= 100:
-		l = g.LinesClear/10 + 1
+	case t.LinesClear >= 10 && t.LinesClear < 100:
+		l = (t.LinesClear/10)%10 + 1
+	case t.LinesClear >= 100:
+		l = t.LinesClear/10 + 1
 	}
-	if l > g.Level {
-		g.Level = l
+	if l > t.Level {
+		t.Level = l
 	}
 }
 
@@ -287,9 +287,9 @@ func (t *Tetris) isGameOver() bool {
 	return t.isCollision(0, 0, t.NexTetromino)
 }
 
-func (g *Tetris) dropDownDelta() int {
+func (t *Tetris) dropDownDelta() int {
 	var delta int
-	for !g.isCollision(0, delta, g.Tetromino) {
+	for !t.isCollision(0, delta, t.Tetromino) {
 		delta--
 	}
 	return delta + 1
