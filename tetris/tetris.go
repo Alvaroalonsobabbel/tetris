@@ -224,43 +224,6 @@ func (t *Tetris) toStack() {
 	t.Tetromino = nil
 }
 
-func (t *Tetris) clearLines() {
-	complete := make(map[int][]Shape)
-	var l []int
-	for i, x := range t.Stack {
-		if !slices.Contains(x, "") {
-			complete[i] = x
-			l = append(l, i)
-		}
-	}
-	if len(l) == 0 {
-		return
-	}
-
-	// TODO: animate the line deletion
-	// for i := range 8 {
-	// 	if i%2 == 0 {
-	// 		for _, v := range l {
-	// 			g.Stack[v] = make([]Shape, 10)
-	// 		}
-	// 	} else {
-	// 		for k, v := range complete {
-	// 			g.Stack[k] = v
-	// 		}
-	// 	}
-	// 	g.Update <- true
-	// 	time.Sleep(40 * time.Millisecond)
-	// }
-
-	// remove complete lines in reverse order to avoid index shift issues.
-	for i := len(l) - 1; i >= 0; i-- {
-		t.Stack = append(t.Stack[:l[i]], t.Stack[l[i]+1:]...)
-		t.Stack = append(t.Stack, make([]Shape, 10))
-	}
-
-	t.LinesClear += len(l)
-}
-
 func (t *Tetris) setLevel() {
 	// set the fixed-goal level system
 	// https://tetris.wiki/Marathon

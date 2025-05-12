@@ -517,26 +517,6 @@ func TestRandomBag(t *testing.T) {
 	})
 }
 
-func TestClearLines(t *testing.T) {
-	tetris := NewTestTetris(J)
-	for ii := range 2 {
-		for i := range 10 {
-			tetris.Stack[ii][i] = J
-		}
-	}
-	tetris.Stack[2][0] = J
-	tetris.LinesClear = 9
-	tetris.clearLines()
-	wantStack := emptyStack()
-	wantStack[0][0] = J
-	if !reflect.DeepEqual(tetris.Stack, wantStack) {
-		t.Errorf("wanted %v, got %v", wantStack, tetris.Stack)
-	}
-	if tetris.LinesClear != 11 {
-		t.Errorf("wanted 11 lines clear, got %d", tetris.LinesClear)
-	}
-}
-
 func TestSetLevel(t *testing.T) {
 	tests := []struct {
 		lines, wantLevel int

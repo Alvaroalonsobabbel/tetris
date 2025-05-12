@@ -1,6 +1,7 @@
 package tetris
 
 import (
+	"slices"
 	"time"
 )
 
@@ -76,7 +77,7 @@ func (g *Game) listen() {
 func (g *Game) next() {
 	g.ticker.Stop()
 	g.tetris.toStack()
-	g.tetris.clearLines()
+	g.clearLines()
 	g.tetris.setLevel()
 	if g.tetris.isGameOver() {
 		g.GameOver <- true
@@ -84,4 +85,42 @@ func (g *Game) next() {
 	}
 	g.tetris.setTetromino()
 	g.ticker.Reset(setTime(g.tetris.Level))
+}
+
+func (g *Game) clearLines() {
+	complete := make(map[int][]Shape)
+	var l []int
+	for i, x := range g.tetris.Stack {
+		if !slices.Contains(x, "") {
+			complete[i] = x
+			l = append(l, i)
+		}
+	}
+	if len(l) == 0 {
+		return
+	}
+
+	for i := range 8 {
+		if i%2 == 0 {
+			for _, v := range l {
+				g.tetris.Stack[v] = make([]Shape, 10)
+			}
+		} else {
+			for k, v := range complete {
+				g.tetris.Stack[k] = v
+			}
+		}
+		g.tetris.Mutex.Unlock()
+		g.Update <- g.tetris
+		time.Sleep(40 * time.Millisecond)
+		g.tetris.Mutex.Lock()
+	}
+
+	// remove complete lines in reverse order to avoid index shift issues.
+	for i := len(l) - 1; i >= 0; i-- {
+		g.tetris.Stack = append(g.tetris.Stack[:l[i]], g.tetris.Stack[l[i]+1:]...)
+		g.tetris.Stack = append(g.tetris.Stack, make([]Shape, 10))
+	}
+
+	g.tetris.LinesClear += len(l)
 }
