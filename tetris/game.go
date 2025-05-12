@@ -17,31 +17,31 @@ const (
 )
 
 type Game struct {
-	GameOver chan bool
-	Update   chan *Tetris
+	GameOverCh chan bool
+	UpdateCh   chan *Tetris
 
-	action chan Action
-	tetris *Tetris
-	ticker *time.Ticker
+	actionCh chan Action
+	tetris   *Tetris
+	ticker   *time.Ticker
 }
 
 func NewGame() *Game {
 	return &Game{
-		GameOver: make(chan bool),
-		Update:   make(chan *Tetris),
-		action:   make(chan Action),
-		tetris:   newTetris(),
+		GameOverCh: make(chan bool),
+		UpdateCh:   make(chan *Tetris),
+		actionCh:   make(chan Action),
+		tetris:     newTetris(),
 	}
 }
 
 func (g *Game) Start() {
 	g.ticker = time.NewTicker(setTime(g.tetris.Level))
-	g.Update <- g.tetris
+	g.UpdateCh <- g.tetris
 	go g.listen()
 }
 
 func (g *Game) Action(a Action) {
-	g.action <- a
+	g.actionCh <- a
 }
 
 func (g *Game) listen() {
@@ -55,8 +55,8 @@ func (g *Game) listen() {
 				g.tetris.action(MoveDown)
 			}
 			g.tetris.Mutex.Unlock()
-			g.Update <- g.tetris
-		case a := <-g.action:
+			g.UpdateCh <- g.tetris
+		case a := <-g.actionCh:
 			g.tetris.Mutex.Lock()
 			if g.tetris.Tetromino == nil {
 				// between toStack() and next round's setTetromino() Tetromino is nil.
@@ -69,7 +69,7 @@ func (g *Game) listen() {
 				g.next()
 			}
 			g.tetris.Mutex.Unlock()
-			g.Update <- g.tetris
+			g.UpdateCh <- g.tetris
 		}
 	}
 }
@@ -80,7 +80,7 @@ func (g *Game) next() {
 	g.clearLines()
 	g.tetris.setLevel()
 	if g.tetris.isGameOver() {
-		g.GameOver <- true
+		g.GameOverCh <- true
 		return
 	}
 	g.tetris.setTetromino()
@@ -111,7 +111,7 @@ func (g *Game) clearLines() {
 			}
 		}
 		g.tetris.Mutex.Unlock()
-		g.Update <- g.tetris
+		g.UpdateCh <- g.tetris
 		time.Sleep(40 * time.Millisecond)
 		g.tetris.Mutex.Lock()
 	}
