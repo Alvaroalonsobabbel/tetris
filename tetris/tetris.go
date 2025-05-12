@@ -57,26 +57,26 @@ func NewTestTetris(shape Shape) *Tetris {
 	}
 }
 
-func (g *Tetris) left() {
-	if !g.isCollision(-1, 0, g.Tetromino) {
-		g.Tetromino.X--
+func (g *Tetris) action(a Action) {
+	switch a {
+	case MoveLeft:
+		if !g.isCollision(-1, 0, g.Tetromino) {
+			g.Tetromino.X--
+		}
+	case MoveRight:
+		if !g.isCollision(1, 0, g.Tetromino) {
+			g.Tetromino.X++
+		}
+	case MoveDown:
+		if !g.isCollision(0, -1, g.Tetromino) {
+			g.Tetromino.Y--
+		}
+	case DropDown:
+		g.Tetromino.Y += g.dropDownDelta()
+	default:
+		g.rotate(a)
 	}
-}
-
-func (g *Tetris) right() {
-	if !g.isCollision(1, 0, g.Tetromino) {
-		g.Tetromino.X++
-	}
-}
-
-func (g *Tetris) down() {
-	if !g.isCollision(0, -1, g.Tetromino) {
-		g.Tetromino.Y--
-	}
-}
-
-func (g *Tetris) drop() {
-	g.Tetromino.Y += g.dropDownDelta()
+	g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
 }
 
 func (g *Tetris) rotate(a Action) {

@@ -49,19 +49,9 @@ func (g *Game) listen() {
 		case <-g.ticker.C:
 			g.tetris.Mutex.Lock()
 			if g.tetris.isCollision(0, -1, g.tetris.Tetromino) {
-				g.ticker.Stop()
-				g.tetris.toStack()
-				g.tetris.clearLines()
-				g.tetris.setLevel()
-				if g.tetris.isGameOver() {
-					g.GameOver <- true
-					g.tetris.Mutex.Unlock()
-					return
-				}
-				g.tetris.setTetromino()
-				g.ticker.Reset(setTime(g.tetris.Level))
+				g.next()
 			} else {
-				g.tetris.down()
+				g.tetris.action(MoveDown)
 			}
 			g.tetris.Mutex.Unlock()
 			g.Update <- g.tetris
@@ -73,21 +63,25 @@ func (g *Game) listen() {
 				g.tetris.Mutex.Unlock()
 				continue
 			}
-			switch a {
-			case MoveLeft:
-				g.tetris.left()
-			case MoveRight:
-				g.tetris.right()
-			case MoveDown:
-				g.tetris.down()
-			case DropDown:
-				g.tetris.drop()
-			default:
-				g.tetris.rotate(a)
+			g.tetris.action(a)
+			if a == DropDown { // drop down doesn't wait for the tick to finish the round
+				g.next()
 			}
-			g.tetris.Tetromino.GhostY = g.tetris.Tetromino.Y + g.tetris.dropDownDelta()
 			g.tetris.Mutex.Unlock()
 			g.Update <- g.tetris
 		}
 	}
+}
+
+func (g *Game) next() {
+	g.ticker.Stop()
+	g.tetris.toStack()
+	g.tetris.clearLines()
+	g.tetris.setLevel()
+	if g.tetris.isGameOver() {
+		g.GameOver <- true
+		return
+	}
+	g.tetris.setTetromino()
+	g.ticker.Reset(setTime(g.tetris.Level))
 }

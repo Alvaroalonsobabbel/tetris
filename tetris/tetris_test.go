@@ -89,19 +89,19 @@ func TestMoveActions(t *testing.T) {
 	// 17	X X X X X X X X X X		2	X X X
 	tests := []struct {
 		name         string
-		action       func(g *Tetris)
+		action       Action
 		updateStack  func(g *Tetris)
 		wantGrid     [][]bool
 		wantLocation []int // x, y
 	}{
 		{
 			name:         "Move left unblocked",
-			action:       func(g *Tetris) { g.left() },
+			action:       MoveLeft,
 			wantLocation: []int{19, 2},
 		},
 		{
 			name:   "Move left blocked",
-			action: func(g *Tetris) { g.left() },
+			action: MoveLeft,
 			updateStack: func(g *Tetris) {
 				g.Stack[18][2] = J
 			},
@@ -109,12 +109,12 @@ func TestMoveActions(t *testing.T) {
 		},
 		{
 			name:         "Move right unblocked",
-			action:       func(g *Tetris) { g.right() },
+			action:       MoveRight,
 			wantLocation: []int{19, 4},
 		},
 		{
 			name:   "Move right blocked",
-			action: func(g *Tetris) { g.right() },
+			action: MoveRight,
 			updateStack: func(g *Tetris) {
 				g.Stack[18][6] = J
 			},
@@ -122,12 +122,12 @@ func TestMoveActions(t *testing.T) {
 		},
 		{
 			name:         "Move down unblocked",
-			action:       func(g *Tetris) { g.down() },
+			action:       MoveDown,
 			wantLocation: []int{18, 3},
 		},
 		{
 			name:   "Move down blocked",
-			action: func(g *Tetris) { g.down() },
+			action: MoveDown,
 			updateStack: func(g *Tetris) {
 				g.Stack[17][3] = J
 			},
@@ -135,12 +135,12 @@ func TestMoveActions(t *testing.T) {
 		},
 		{
 			name:         "Drop moves down until blocked",
-			action:       func(g *Tetris) { g.drop() },
+			action:       DropDown,
 			wantLocation: []int{1, 3},
 		},
 		{
 			name:         "Rotate right when unblocked",
-			action:       func(g *Tetris) { g.rotate(RotateRight) },
+			action:       RotateRight,
 			wantLocation: []int{19, 3},
 			wantGrid: [][]bool{
 				{false, true, true},
@@ -150,7 +150,7 @@ func TestMoveActions(t *testing.T) {
 		},
 		{
 			name:         "Rotate left when unblocked",
-			action:       func(g *Tetris) { g.rotate(RotateLeft) },
+			action:       RotateLeft,
 			wantLocation: []int{19, 3},
 			wantGrid: [][]bool{
 				{false, true, false},
@@ -167,7 +167,7 @@ func TestMoveActions(t *testing.T) {
 			if tt.updateStack != nil {
 				tt.updateStack(tetris)
 			}
-			tt.action(tetris)
+			tetris.action(tt.action)
 			if tetris.Tetromino.Y != tt.wantLocation[0] {
 				t.Errorf("wanted tetromino's Y to be %d, got %d", tt.wantLocation[0], tetris.Tetromino.Y)
 			}
@@ -589,7 +589,7 @@ func TestSetTetromino(t *testing.T) {
 	t.Run("after tetromino has been transferred to the stack, moves next tetromino to current", func(t *testing.T) {
 		tetris := newTetris()
 		tetris.setTetromino()
-		tetris.down()
+		tetris.action(MoveDown)
 		tetris.toStack()
 		wantShape := tetris.NexTetromino.Shape
 		tetris.setTetromino()
