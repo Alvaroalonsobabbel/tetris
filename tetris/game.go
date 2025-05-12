@@ -55,6 +55,7 @@ func (g *Game) listen() {
 				g.tetris.setLevel()
 				if g.tetris.isGameOver() {
 					g.GameOver <- true
+					g.tetris.Mutex.Unlock()
 					return
 				}
 				g.tetris.setTetromino()
@@ -69,6 +70,7 @@ func (g *Game) listen() {
 			if g.tetris.Tetromino == nil {
 				// between toStack() and next round's setTetromino() Tetromino is nil.
 				// we return here to avoid user commands to cause panic.
+				g.tetris.Mutex.Unlock()
 				continue
 			}
 			switch a {
@@ -83,6 +85,7 @@ func (g *Game) listen() {
 			default:
 				g.tetris.rotate(a)
 			}
+			g.tetris.Tetromino.GhostY = g.tetris.Tetromino.Y + g.tetris.dropDownDelta()
 			g.tetris.Mutex.Unlock()
 			g.Update <- g.tetris
 		}

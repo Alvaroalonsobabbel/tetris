@@ -185,6 +185,7 @@ func (g *Tetris) setTetromino() {
 		g.Tetromino = g.NexTetromino
 		g.NexTetromino = g.bag.draw()
 	}
+	g.Tetromino.GhostY = g.Tetromino.Y + g.dropDownDelta()
 }
 
 func (g *Tetris) isCollision(deltaX, deltaY int, t *Tetromino) bool {
