@@ -13,7 +13,7 @@ const (
 	Z Shape = "Z"
 	T Shape = "T"
 
-	// Rotation states
+	// Rotation states.
 	rState0 = "0" // spawn position
 	rStateR = "R" // one step clockwise from spawn
 	rStateL = "L" // one step counter-clockwise from spawn

@@ -1,0 +1,44 @@
+version: "2"
+run:
+    modules-download-mode: readonly
+linters:
+    default: none
+    enable:
+        - errcheck
+        - gocritic
+        - gosec
+        - govet
+        - ineffassign
+        - revive
+        - staticcheck
+        - unconvert
+        - unparam
+        - unused
+        - whitespace
+    settings:
+        errcheck:
+            check-blank: true
+        whitespace:
+            multi-if: false
+            multi-func: false
+    exclusions:
+        generated: lax
+        presets:
+            - comments
+            - common-false-positives
+            - legacy
+            - std-error-handling
+        paths:
+            - third_party$
+            - builtin$
+            - examples$
+formatters:
+    enable:
+        - gofmt
+        - goimports
+    exclusions:
+        generated: lax
+        paths:
+            - third_party$
+            - builtin$
+            - examples$

@@ -7,7 +7,6 @@ import (
 	"log"
 	"log/slog"
 	"strings"
-	"sync"
 	"tetris/tetris"
 	"text/template"
 
@@ -15,7 +14,7 @@ import (
 )
 
 const (
-	// ASCII colors
+	// ASCII colors.
 	Cyan    = "36"
 	Blue    = "34"
 	Orange  = "38;5;214"
@@ -37,7 +36,6 @@ type Terminal struct {
 	logger       *slog.Logger
 	keysEventsCh <-chan keyboard.KeyEvent
 	doneCh       chan bool
-	gw           sync.WaitGroup
 }
 
 func New(t *tetris.Game, w io.Writer, l *slog.Logger) *Terminal {

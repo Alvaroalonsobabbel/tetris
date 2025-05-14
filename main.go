@@ -21,7 +21,7 @@ const (
 	showCursor = "\n\033[22;0H\n\033[?25h"
 	logFile    = ".tetrisLog"
 
-	// Option Flags
+	// Option Flags.
 	debugFlag   = "debug"
 	versionFlag = "version"
 )

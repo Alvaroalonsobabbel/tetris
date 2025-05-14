@@ -15,6 +15,7 @@ package tetris
 import (
 	"math"
 	"math/rand"
+
 	"slices"
 	"sync"
 	"time"
@@ -278,7 +279,7 @@ func (b *bag) draw() *Tetromino {
 		b.bag = newTetrominoList()
 	}
 	firstDrawList := []Shape{I, T, J, L}
-	i := rand.Intn(len(b.bag))
+	i := rand.Intn(len(b.bag)) //nolint: gosec
 	t := b.bag[i]
 	if b.firstDraw && !slices.Contains(firstDrawList, t.Shape) {
 		return b.draw()
