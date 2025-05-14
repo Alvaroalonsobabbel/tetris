@@ -21,6 +21,7 @@ type Game struct {
 	UpdateCh   chan *Tetris
 
 	actionCh chan Action
+	doneCh   chan bool
 	tetris   *Tetris
 	ticker   *time.Ticker
 }
@@ -30,6 +31,7 @@ func NewGame() *Game {
 		GameOverCh: make(chan bool),
 		UpdateCh:   make(chan *Tetris),
 		actionCh:   make(chan Action),
+		doneCh:     make(chan bool),
 		tetris:     newTetris(),
 	}
 }
@@ -70,6 +72,8 @@ func (g *Game) listen() {
 			}
 			g.tetris.Mutex.Unlock()
 			g.UpdateCh <- g.tetris
+		case <-g.doneCh:
+			return
 		}
 	}
 }
@@ -81,6 +85,7 @@ func (g *Game) next() {
 	g.tetris.setLevel()
 	if g.tetris.isGameOver() {
 		g.GameOverCh <- true
+		g.doneCh <- true
 		return
 	}
 	g.tetris.setTetromino()
