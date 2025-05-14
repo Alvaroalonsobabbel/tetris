@@ -110,6 +110,8 @@ func (g *Game) clearLines() {
 				g.tetris.Stack[k] = v
 			}
 		}
+		// we allow whatever is rendering to acccess the
+		// struct while we wait for the animation time.
 		g.tetris.Mutex.Unlock()
 		g.UpdateCh <- g.tetris
 		time.Sleep(40 * time.Millisecond)
