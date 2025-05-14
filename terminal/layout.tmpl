@@ -6,5 +6,12 @@
 {{- if eq $ix 6}}   Lines Cleared: {{$root.LinesClear}}{{- end -}}
 {{- if eq $ix 7}}            Next: {{ index $next 0 }}{{- end -}}
 {{- if eq $ix 8}}                  {{ index $next 1 }}{{- end -}}
+{{- if eq $ix 13}}           Right: →, d{{- end -}}
+{{- if eq $ix 14}}            Left: ←, a{{- end -}}
+{{- if eq $ix 15}}            Down: ↓, s{{- end -}}
+{{- if eq $ix 16}}    Rotate Right: ↑, e{{- end -}}
+{{- if eq $ix 17}}     Rotate Left: q{{- end -}}
+{{- if eq $ix 18}}       Drop Down: space{{- end -}}
+{{- if eq $ix 19}}            Exit: ctrl-c{{- end -}}
 {{end}}
 +--------------------+

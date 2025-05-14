@@ -1,86 +1,52 @@
 package main
 
 import (
-	_ "embed"
 	"fmt"
+	"io"
 	"log"
+	"log/slog"
 	"os"
-	"sync"
+	"tetris/terminal"
 	"tetris/tetris"
 
-	"golang.org/x/term"
+	"github.com/eiannone/keyboard"
 )
 
 const (
-	hideCursor     = "\033[2J\033[?25l" // also clear screen
-	showCursor     = "\033[21;0H\n\r\033[?25h"
-	resetCursorPos = "\033[H"
-
-	// ASCII colors
-	Cyan    = "36"
-	Blue    = "34"
-	Orange  = "38;2;255;165;0"
-	Yellow  = "33"
-	Green   = "32"
-	Red     = "31"
-	Magenta = "35"
+	hideCursor = "\033[2J\033[?25l" // also clear screen
+	showCursor = "\n\033[22;0H\n\033[?25h"
 )
 
-//go:embed "layout.txt"
-var layout string
+var debug bool
 
 func main() {
-	// restore := startRawConsole()
-	// defer restore()
-
-	// layoutWithCR := strings.ReplaceAll(layout, "\n", "\r\n")
-	// _, err := template.New("layout").Parse(layoutWithCR)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	var gw sync.WaitGroup
-	gw.Add(1)
-	tetris := tetris.New()
-	go func() {
-		for {
-			select {
-			case <-tetris.Update:
-				fmt.Println(tetris)
-			// update ui
-			// 	fmt.Print(resetCursorPos)
-			// 	if err := t.Execute(os.Stdout, tetris); err != nil {
-			// 		log.Fatal(err)
-			// 	}
-			case <-tetris.GameOver:
-				fmt.Println("game over!")
-				gw.Done()
-				// finish game
+	l := initLogger()
+	defer func() {
+		if r := recover(); r != nil {
+			l.Error("Recovered from panic", slog.Any("error", r))
+			if err := keyboard.Close(); err != nil {
+				l.Error("failed to close the keyboard", slog.String("error", err.Error()))
 			}
 		}
 	}()
-	tetris.Start()
-	gw.Wait()
+	fmt.Print(hideCursor)
+	defer fmt.Print(showCursor)
+	tetris := tetris.NewGame()
+	terminal.New(tetris, os.Stdout, l).Start()
 
-	// for  {
-	// 	fmt.Print(resetCursorPos)
-	// 	if err := t.Execute(os.Stdout, "\x1b[7m\x1b[34m[]\x1b[0m"); err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// }
 }
 
-func startRawConsole() func() {
-	fmt.Print(hideCursor)
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+func initLogger() *slog.Logger {
+	file, err := os.OpenFile("log.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Fatalf("Error setting terminal to raw mode: %v", err)
+		log.Fatalf("unable to open log file: %v", err)
 	}
 
-	return func() {
-		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
-			log.Fatalf("unable to retore the terminal original state: %v", err)
-		}
-		fmt.Print(showCursor)
+	out := io.Discard
+	if debug {
+		out = file
 	}
+
+	handler := slog.NewJSONHandler(out, &slog.HandlerOptions{Level: slog.LevelDebug})
+	return slog.New(handler)
 }
