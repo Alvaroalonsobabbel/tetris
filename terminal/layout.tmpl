@@ -1,0 +1,10 @@
+{{- $root := . -}}{{- $next := renderNext . -}}
++--------------------+{{range $ix, $row := renderStack .}}
+|{{range $cell := $row}}{{$cell}}{{end}}|
+{{- if eq $ix 0}}   Terminal Tetris{{- end -}}
+{{- if eq $ix 5}}           Level: {{$root.Level}}{{- end -}}
+{{- if eq $ix 6}}   Lines Cleared: {{$root.LinesClear}}{{- end -}}
+{{- if eq $ix 7}}            Next: {{ index $next 0 }}{{- end -}}
+{{- if eq $ix 8}}                  {{ index $next 1 }}{{- end -}}
+{{end}}
++--------------------+
