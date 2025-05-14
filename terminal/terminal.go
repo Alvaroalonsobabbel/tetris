@@ -177,6 +177,7 @@ func loadTemplate() (*template.Template, error) {
 
 	// we use the console raw so new lines don't automatically transform into carriage return
 	// to fix that we add a carriage return to every new line in the layout.
-	layoutWithCR := strings.ReplaceAll(layout, "\n", "\r\n")
-	return template.New("layout").Funcs(funcMap).Parse(layoutWithCR)
+	layout = strings.ReplaceAll(layout, "\n", "\r\n")
+	layout = strings.ReplaceAll(layout, "Terminal Tetris", "\033[1mTerminal Tetris\033[0m")
+	return template.New("layout").Funcs(funcMap).Parse(layout)
 }
