@@ -1,7 +1,7 @@
 check: lint test
 
 test:
-	@go test ./...
+	@go test -race ./...
 
 lint:
 	@golangci-lint run
