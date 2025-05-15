@@ -38,8 +38,8 @@ type Terminal struct {
 	doneCh       chan bool
 }
 
-func New(t *tetris.Game, w io.Writer, l *slog.Logger) *Terminal {
-	tp, err := loadTemplate()
+func New(w io.Writer, l *slog.Logger, noGhost bool) *Terminal {
+	tp, err := loadTemplate(noGhost)
 	if err != nil {
 		log.Fatalf("unable to load template: %v\n", err)
 	}
@@ -49,7 +49,7 @@ func New(t *tetris.Game, w io.Writer, l *slog.Logger) *Terminal {
 	}
 	return &Terminal{
 		writer:       w,
-		tetris:       t,
+		tetris:       tetris.NewGame(),
 		template:     tp,
 		keysEventsCh: kc,
 		doneCh:       make(chan bool),
@@ -113,7 +113,7 @@ func (t *Terminal) listenKB() {
 	t.doneCh <- true
 }
 
-func loadTemplate() (*template.Template, error) {
+func loadTemplate(noGhost bool) (*template.Template, error) {
 	colorMap := map[tetris.Shape]string{
 		tetris.I: Cyan,
 		tetris.J: Blue,
@@ -148,8 +148,9 @@ func loadTemplate() (*template.Template, error) {
 				for iy, y := range t.Tetromino.Grid {
 					for ix, x := range y {
 						if x {
-							// TODO: make ghost piece optional
-							rendered[19-t.Tetromino.GhostY+iy][t.Tetromino.X+ix] = "[]"
+							if !noGhost {
+								rendered[19-t.Tetromino.GhostY+iy][t.Tetromino.X+ix] = "[]"
+							}
 							rendered[19-t.Tetromino.Y+iy][t.Tetromino.X+ix] = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", colorMap[t.Tetromino.Shape])
 						}
 					}

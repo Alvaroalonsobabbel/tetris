@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"tetris/terminal"
-	"tetris/tetris"
 
 	"github.com/eiannone/keyboard"
 )
@@ -24,9 +23,13 @@ const (
 	// Option Flags.
 	debugFlag   = "debug"
 	versionFlag = "version"
+	noGhostFlag = "noghost"
 )
 
-var debug bool
+var (
+	debug   bool
+	noGhost bool
+)
 
 func main() {
 	evalOptions()
@@ -41,8 +44,7 @@ func main() {
 	}()
 	fmt.Print(hideCursor)
 	defer fmt.Print(showCursor)
-	tetris := tetris.NewGame()
-	terminal.New(tetris, os.Stdout, l).Start()
+	terminal.New(os.Stdout, l, noGhost).Start()
 }
 
 func initLogger() *slog.Logger {
@@ -64,7 +66,8 @@ func initLogger() *slog.Logger {
 
 func evalOptions() {
 	flag.BoolFunc(versionFlag, "Prints version", version)
-	flag.Bool(debugFlag, debug, "Enables debugging into ~/.tetrisLog")
+	flag.BoolVar(&debug, debugFlag, false, "Enables debugging into ~/.tetrisLog")
+	flag.BoolVar(&noGhost, noGhostFlag, false, "Disables Ghost Piece")
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}
