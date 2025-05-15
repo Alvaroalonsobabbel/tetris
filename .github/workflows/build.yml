@@ -27,7 +27,7 @@ jobs:
 
             - name: Build
               run: |
-                  GOOS=darwin GOARCH=arm64 make build
+                  GOOS=darwin GOARCH=arm64 make build-tetris
 
             - name: Read Version
               id: read_version
