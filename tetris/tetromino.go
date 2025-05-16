@@ -39,6 +39,27 @@ type Tetromino struct {
 	rState *ring.Ring
 }
 
+func (t *Tetromino) copy() *Tetromino {
+	if t == nil {
+		return nil
+	}
+	tc := &Tetromino{
+		Shape:  t.Shape,
+		X:      t.X,
+		Y:      t.Y,
+		GhostY: t.GhostY,
+		rState: t.rState,
+	}
+	if t.Grid != nil {
+		tc.Grid = make([][]bool, len(t.Grid))
+		for i := range t.Grid {
+			tc.Grid[i] = make([]bool, len(t.Grid[i]))
+			copy(tc.Grid[i], t.Grid[i])
+		}
+	}
+	return tc
+}
+
 /*
 .	Spawn Location			.	Shape
 
