@@ -101,9 +101,6 @@ kbListener:
 				// clear the screen after the lobby
 				fmt.Fprint(t.writer, "\033[2J\033[H")
 				t.tetris.Start()
-			// TODO: implement play online
-			// case event.Rune == 'o':
-			// play online
 			case event.Rune == 'q':
 				break kbListener
 			}
@@ -129,11 +126,11 @@ kbListener:
 
 func (t *Terminal) renderLobby() {
 	t.lobby.Store(true)
-	fmt.Fprint(t.writer, "\033[7;9H+--------------------------------------+")
-	fmt.Fprint(t.writer, "\033[8;9H|      Welcome to Terminal Tetris      |")
-	fmt.Fprint(t.writer, "\033[9;9H|                                      |")
-	fmt.Fprint(t.writer, "\033[10;9H| (p)lay        (o)nline        (q)uit |")
-	fmt.Fprint(t.writer, "\033[11;9H+--------------------------------------+")
+	fmt.Fprint(t.writer, "\033[10;9H+--------------------------------------+")
+	fmt.Fprint(t.writer, "\033[11;9H|      Welcome to Terminal Tetris      |")
+	fmt.Fprint(t.writer, "\033[12;9H|                                      |")
+	fmt.Fprint(t.writer, "\033[13;9H|      (p)lay              (q)uit      |")
+	fmt.Fprint(t.writer, "\033[14;9H+--------------------------------------+")
 }
 
 func (t *Terminal) renderGame(update *tetris.Tetris) {
