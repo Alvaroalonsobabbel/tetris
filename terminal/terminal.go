@@ -95,13 +95,13 @@ kbListener:
 			break
 		}
 		if t.lobby.Load() {
-			switch {
-			case event.Rune == 'p':
+			switch event.Rune {
+			case 'p':
 				t.lobby.Store(false)
 				// clear the screen after the lobby
 				fmt.Fprint(t.writer, "\033[2J\033[H")
 				t.tetris.Start()
-			case event.Rune == 'q':
+			case 'q':
 				break kbListener
 			}
 		} else {
