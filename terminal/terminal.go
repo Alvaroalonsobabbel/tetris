@@ -113,6 +113,23 @@ func (t *Terminal) listenKB() {
 	t.doneCh <- true
 }
 
+func (t *Terminal) renderLobby() {
+	fmt.Fprint(t.writer, "\033[7;8H+--------------------------------------+")
+	fmt.Fprint(t.writer, "\033[8;8H|      Welcome to Terminal Tetris      |")
+	fmt.Fprint(t.writer, "\033[9;8H|                                      |")
+	fmt.Fprint(t.writer, "\033[10;8H| (p)lay        (o)nline        (q)uit |")
+	fmt.Fprint(t.writer, "\033[11;8H+--------------------------------------+")
+}
+
+func (t *Terminal) renderGame(update *tetris.Tetris) {
+	fmt.Fprint(t.writer, resetPos)
+	update.Mutex.RLock()
+	if err := t.template.Execute(t.writer, update); err != nil {
+		t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
+	}
+	update.Mutex.RUnlock()
+}
+
 func loadTemplate(noGhost bool) (*template.Template, error) {
 	colorMap := map[tetris.Shape]string{
 		tetris.I: Cyan,
