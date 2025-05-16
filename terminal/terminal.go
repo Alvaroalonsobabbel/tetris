@@ -67,13 +67,11 @@ func (t *Terminal) Start() {
 func (t *Terminal) listenTetris() {
 	for {
 		select {
-		case update := <-t.tetris.UpdateCh:
+		case <-t.tetris.UpdateCh:
 			fmt.Fprint(t.writer, resetPos)
-			update.Mutex.RLock()
-			if err := t.template.Execute(t.writer, update); err != nil {
+			if err := t.template.Execute(t.writer, t.tetris.Read()); err != nil {
 				t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
 			}
-			update.Mutex.RUnlock()
 		case <-t.tetris.GameOverCh:
 			t.doneCh <- true
 			return
