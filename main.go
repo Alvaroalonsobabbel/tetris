@@ -13,7 +13,7 @@ import (
 	"github.com/eiannone/keyboard"
 )
 
-const VERSION = "v0.0.1"
+const VERSION = "v0.0.2"
 
 const (
 	hideCursor = "\033[2J\033[?25l" // also clear screen
