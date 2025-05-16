@@ -7,6 +7,7 @@ import (
 	"log"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 	"tetris/tetris"
 	"text/template"
 
@@ -36,6 +37,7 @@ type Terminal struct {
 	logger       *slog.Logger
 	keysEventsCh <-chan keyboard.KeyEvent
 	doneCh       chan bool
+	lobby        atomic.Bool
 }
 
 func New(w io.Writer, l *slog.Logger, noGhost bool) *Terminal {
@@ -54,13 +56,15 @@ func New(w io.Writer, l *slog.Logger, noGhost bool) *Terminal {
 		keysEventsCh: kc,
 		doneCh:       make(chan bool),
 		logger:       l,
+		lobby:        atomic.Bool{},
 	}
 }
 
 func (t *Terminal) Start() {
 	go t.listenTetris()
 	go t.listenKB()
-	t.tetris.Start()
+	t.renderGame(t.tetris.Read())
+	t.renderLobby()
 	<-t.doneCh
 }
 
@@ -68,18 +72,15 @@ func (t *Terminal) listenTetris() {
 	for {
 		select {
 		case <-t.tetris.UpdateCh:
-			fmt.Fprint(t.writer, resetPos)
-			if err := t.template.Execute(t.writer, t.tetris.Read()); err != nil {
-				t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
-			}
+			t.renderGame(t.tetris.Read())
 		case <-t.tetris.GameOverCh:
-			t.doneCh <- true
-			return
+			t.renderLobby()
 		}
 	}
 }
 
 func (t *Terminal) listenKB() {
+kbListener:
 	for {
 		event, ok := <-t.keysEventsCh
 		if !ok {
@@ -93,22 +94,50 @@ func (t *Terminal) listenKB() {
 		if event.Key == keyboard.KeyCtrlC {
 			break
 		}
-		switch {
-		case event.Key == keyboard.KeyArrowDown || event.Rune == 's':
-			t.tetris.Action(tetris.MoveDown)
-		case event.Key == keyboard.KeyArrowLeft || event.Rune == 'a':
-			t.tetris.Action(tetris.MoveLeft)
-		case event.Key == keyboard.KeyArrowRight || event.Rune == 'd':
-			t.tetris.Action(tetris.MoveRight)
-		case event.Key == keyboard.KeyArrowUp || event.Rune == 'e':
-			t.tetris.Action(tetris.RotateRight)
-		case event.Rune == 'q':
-			t.tetris.Action(tetris.RotateLeft)
-		case event.Key == keyboard.KeySpace:
-			t.tetris.Action(tetris.DropDown)
+		if t.lobby.Load() {
+			switch event.Rune {
+			case 'p':
+				t.lobby.Store(false)
+				// clear the screen after the lobby
+				fmt.Fprint(t.writer, "\033[2J\033[H")
+				t.tetris.Start()
+			case 'q':
+				break kbListener
+			}
+		} else {
+			switch {
+			case event.Key == keyboard.KeyArrowDown || event.Rune == 's':
+				t.tetris.Action(tetris.MoveDown)
+			case event.Key == keyboard.KeyArrowLeft || event.Rune == 'a':
+				t.tetris.Action(tetris.MoveLeft)
+			case event.Key == keyboard.KeyArrowRight || event.Rune == 'd':
+				t.tetris.Action(tetris.MoveRight)
+			case event.Key == keyboard.KeyArrowUp || event.Rune == 'e':
+				t.tetris.Action(tetris.RotateRight)
+			case event.Rune == 'q':
+				t.tetris.Action(tetris.RotateLeft)
+			case event.Key == keyboard.KeySpace:
+				t.tetris.Action(tetris.DropDown)
+			}
 		}
 	}
 	t.doneCh <- true
+}
+
+func (t *Terminal) renderLobby() {
+	t.lobby.Store(true)
+	fmt.Fprint(t.writer, "\033[10;9H+--------------------------------------+")
+	fmt.Fprint(t.writer, "\033[11;9H|      Welcome to Terminal Tetris      |")
+	fmt.Fprint(t.writer, "\033[12;9H|                                      |")
+	fmt.Fprint(t.writer, "\033[13;9H|      (p)lay              (q)uit      |")
+	fmt.Fprint(t.writer, "\033[14;9H+--------------------------------------+")
+}
+
+func (t *Terminal) renderGame(update *tetris.Tetris) {
+	fmt.Fprint(t.writer, resetPos)
+	if err := t.template.Execute(t.writer, update); err != nil {
+		t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
+	}
 }
 
 func loadTemplate(noGhost bool) (*template.Template, error) {

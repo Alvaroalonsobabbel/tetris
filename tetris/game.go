@@ -37,6 +37,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) Start() {
+	g.tetris = newTetris()
 	g.ticker = time.NewTicker(setTime(g.tetris.Level))
 	g.UpdateCh <- true
 	go g.listen()
@@ -70,31 +71,38 @@ func (g *Game) listen() {
 	for {
 		select {
 		case <-g.ticker.C:
-			g.tetris.mu.Lock()
-			if g.tetris.isCollision(0, -1, g.tetris.Tetromino) {
-				g.next()
-			} else {
-				g.tetris.action(MoveDown)
-			}
-			g.tetris.mu.Unlock()
+			g.processTicker()
 			g.UpdateCh <- true
 		case a := <-g.actionCh:
-			g.tetris.mu.Lock()
-			if g.tetris.Tetromino == nil {
-				// between toStack() and next round's setTetromino() Tetromino is nil.
-				// we return here to avoid user commands to cause panic.
-				g.tetris.mu.Unlock()
-				continue
-			}
-			g.tetris.action(a)
-			if a == DropDown { // drop down doesn't wait for the tick to finish the round
-				g.next()
-			}
-			g.tetris.mu.Unlock()
+			g.processAction(a)
 			g.UpdateCh <- true
 		case <-g.doneCh:
 			return
 		}
+	}
+}
+
+func (g *Game) processTicker() {
+	g.tetris.mu.Lock()
+	defer g.tetris.mu.Unlock()
+	if g.tetris.isCollision(0, -1, g.tetris.Tetromino) {
+		g.next()
+	} else {
+		g.tetris.action(MoveDown)
+	}
+}
+
+func (g *Game) processAction(a Action) {
+	g.tetris.mu.Lock()
+	defer g.tetris.mu.Unlock()
+	if g.tetris.Tetromino == nil {
+		// between toStack() and next round's setTetromino() Tetromino is nil.
+		// we return here to avoid user commands to cause panic.
+		return
+	}
+	g.tetris.action(a)
+	if a == DropDown { // drop down doesn't wait for the tick to finish the round
+		g.next()
 	}
 }
 
