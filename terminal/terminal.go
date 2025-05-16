@@ -98,6 +98,8 @@ kbListener:
 			switch {
 			case event.Rune == 'p':
 				t.lobby.Store(false)
+				// clear the screen after the lobby
+				fmt.Fprint(t.writer, "\033[2J\033[H")
 				t.tetris.Start()
 			// TODO: implement play online
 			// case event.Rune == 'o':
