@@ -68,7 +68,7 @@ func (t *Terminal) listenTetris() {
 	for {
 		select {
 		case update := <-t.tetris.UpdateCh:
-			fmt.Print(resetPos)
+			fmt.Fprint(t.writer, resetPos)
 			update.Mutex.RLock()
 			if err := t.template.Execute(t.writer, update); err != nil {
 				t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
