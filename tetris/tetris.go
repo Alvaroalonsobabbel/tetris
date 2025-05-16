@@ -34,8 +34,7 @@ type Tetris struct {
 	Level      int
 	LinesClear int
 
-	Mutex sync.RWMutex
-
+	mu  sync.RWMutex
 	bag *bag
 }
 

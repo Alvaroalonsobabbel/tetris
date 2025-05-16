@@ -18,7 +18,7 @@ const (
 
 type Game struct {
 	GameOverCh chan bool
-	UpdateCh   chan *Tetris
+	UpdateCh   chan bool
 
 	actionCh chan Action
 	doneCh   chan bool
@@ -29,7 +29,7 @@ type Game struct {
 func NewGame() *Game {
 	return &Game{
 		GameOverCh: make(chan bool),
-		UpdateCh:   make(chan *Tetris),
+		UpdateCh:   make(chan bool),
 		actionCh:   make(chan Action),
 		doneCh:     make(chan bool),
 		tetris:     newTetris(),
@@ -38,7 +38,7 @@ func NewGame() *Game {
 
 func (g *Game) Start() {
 	g.ticker = time.NewTicker(setTime(g.tetris.Level))
-	g.UpdateCh <- g.tetris
+	g.UpdateCh <- true
 	go g.listen()
 }
 
@@ -46,32 +46,52 @@ func (g *Game) Action(a Action) {
 	g.actionCh <- a
 }
 
+// Read() returns a copy of the current Tetris status that's safe to read concurrently.
+func (g *Game) Read() *Tetris {
+	g.tetris.mu.RLock()
+	defer g.tetris.mu.RUnlock()
+	tc := &Tetris{
+		Level:        g.tetris.Level,
+		LinesClear:   g.tetris.LinesClear,
+		Tetromino:    g.tetris.Tetromino.copy(),
+		NexTetromino: g.tetris.NexTetromino.copy(),
+	}
+	if g.tetris.Stack != nil {
+		tc.Stack = make([][]Shape, len(g.tetris.Stack))
+		for i := range g.tetris.Stack {
+			tc.Stack[i] = make([]Shape, len(g.tetris.Stack[i]))
+			copy(tc.Stack[i], g.tetris.Stack[i])
+		}
+	}
+	return tc
+}
+
 func (g *Game) listen() {
 	for {
 		select {
 		case <-g.ticker.C:
-			g.tetris.Mutex.Lock()
+			g.tetris.mu.Lock()
 			if g.tetris.isCollision(0, -1, g.tetris.Tetromino) {
 				g.next()
 			} else {
 				g.tetris.action(MoveDown)
 			}
-			g.tetris.Mutex.Unlock()
-			g.UpdateCh <- g.tetris
+			g.tetris.mu.Unlock()
+			g.UpdateCh <- true
 		case a := <-g.actionCh:
-			g.tetris.Mutex.Lock()
+			g.tetris.mu.Lock()
 			if g.tetris.Tetromino == nil {
 				// between toStack() and next round's setTetromino() Tetromino is nil.
 				// we return here to avoid user commands to cause panic.
-				g.tetris.Mutex.Unlock()
+				g.tetris.mu.Unlock()
 				continue
 			}
 			g.tetris.action(a)
 			if a == DropDown { // drop down doesn't wait for the tick to finish the round
 				g.next()
 			}
-			g.tetris.Mutex.Unlock()
-			g.UpdateCh <- g.tetris
+			g.tetris.mu.Unlock()
+			g.UpdateCh <- true
 		case <-g.doneCh:
 			return
 		}
@@ -117,10 +137,10 @@ func (g *Game) clearLines() {
 		}
 		// we allow whatever is rendering to acccess the
 		// struct while we wait for the animation time.
-		g.tetris.Mutex.Unlock()
-		g.UpdateCh <- g.tetris
+		g.tetris.mu.Unlock()
+		g.UpdateCh <- true
 		time.Sleep(40 * time.Millisecond)
-		g.tetris.Mutex.Lock()
+		g.tetris.mu.Lock()
 	}
 
 	// remove complete lines in reverse order to avoid index shift issues.
