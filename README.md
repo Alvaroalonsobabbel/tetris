@@ -35,17 +35,17 @@ curl -sSL https://raw.githubusercontent.com/Alvaroalonsobabbel/tetris/main/bin/i
 Disables Ghost piece.
 
 ```bash
-wordle -noghost
+tetris -noghost
 ```
 
 Enables debug logs into `~/.tetrisLog`.
 
 ```bash
-wordle -debug
+tetris -debug
 ```
 
 Prints current version.
 
 ```bash
-wordle -version
+tetris -version
 ```
