@@ -1,5 +1,4 @@
 log*
 .DS_Store
-server
 bin/tetris
 demo.cast
