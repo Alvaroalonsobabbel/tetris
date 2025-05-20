@@ -2,7 +2,7 @@
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Alvaroalonsobabbel/tetris) ![Test](https://github.com/Alvaroalonsobabbel/tetris/actions/workflows/test.yml/badge.svg) ![Latest Release](https://img.shields.io/github/v/release/Alvaroalonsobabbel/tetris?color=blue&label=Latest%20Release)
 
-Play the Tetris from the comfort of your terminal!
+Play Tetris from the comfort of your terminal!
 
 ![example](./doc/example.gif)
 
