@@ -8,6 +8,7 @@ service TetrisService {
 
 message GameMessage {
     string game_id = 1;
+    int32 player = 2;
     // Tetris tetris = 1;
 }
 

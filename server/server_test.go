@@ -12,52 +12,73 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func TestTetrisServerGameSession(t *testing.T) {
-	tests := []struct {
-		name  string
-		cliGM *proto.GameMessage
-		srvGM *proto.GameMessage
-	}{
-		{
-			name:  "client without gameID gets a new ID",
-			cliGM: &proto.GameMessage{},
-			srvGM: &proto.GameMessage{GameId: "123"},
-		},
-		{
-			name:  "client with gameID gets the same ID",
-			cliGM: &proto.GameMessage{GameId: "456"},
-			srvGM: &proto.GameMessage{GameId: "456"},
-		},
+func TestTetrisServerGameSessionQueue(t *testing.T) {
+	ctx := context.Background()
+	conn, closer := testServer(ctx)
+	defer closer()
+
+	// player 1 should receive a gameID
+	player1 := proto.NewTetrisServiceClient(conn)
+	outP1, err := player1.GameSession(ctx)
+	if err != nil {
+		t.Errorf("error calling GameSession: %v", err)
+	}
+	if err := outP1.Send(&proto.GameMessage{}); err != nil {
+		t.Errorf("error sending message: %v", err)
+	}
+	msgP1, err := outP1.Recv()
+	if err != nil {
+		t.Errorf("error receiving message: %v", err)
+	}
+	if msgP1 == nil {
+		t.Fatal("expected non-nil message for player 1")
+	}
+	if msgP1.GameId == "" {
+		t.Errorf("expected not-empty GameId, got %q", msgP1.GameId)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			client, closer := testServer(ctx)
-			defer closer()
+	// player 2 should receive same gameID as player 1
+	player2 := proto.NewTetrisServiceClient(conn)
+	outP2, err := player2.GameSession(ctx)
+	if err != nil {
+		t.Errorf("error calling GameSession: %v", err)
+	}
+	if err := outP2.Send(&proto.GameMessage{}); err != nil {
+		t.Errorf("error sending message: %v", err)
+	}
+	msgP2, err := outP2.Recv()
+	if err != nil {
+		t.Errorf("error receiving message: %v", err)
+	}
+	if msgP2 == nil {
+		t.Fatal("expected non-nil message for player 2")
+	}
+	if msgP2.GameId != msgP1.GameId {
+		t.Errorf("expected Player 2 gameID to be equal to Player 1 GameId, got p1 %q, got p2 %q", msgP1.GameId, msgP2.GameId)
+	}
 
-			out, err := client.GameSession(ctx)
-			if err != nil {
-				t.Errorf("error calling GameSession: %v", err)
-			}
-			if err := out.Send(tt.cliGM); err != nil {
-				t.Errorf("error sending message: %v", err)
-			}
-			message, err := out.Recv()
-			if err != nil {
-				t.Errorf("error receiving message: %v", err)
-			}
-			if message == nil {
-				t.Fatalf("expected non-nil message, got %v", message)
-			}
-			if message.GameId != tt.srvGM.GameId {
-				t.Errorf("expected %q GameId, got %q", tt.srvGM.GameId, message.GameId)
-			}
-		})
+	// player 3 should receive a game ID that's different than player 1 & 2
+	player3 := proto.NewTetrisServiceClient(conn)
+	outP3, err := player3.GameSession(ctx)
+	if err != nil {
+		t.Errorf("error calling GameSession: %v", err)
+	}
+	if err := outP3.Send(&proto.GameMessage{}); err != nil {
+		t.Errorf("error sending message: %v", err)
+	}
+	msgP3, err := outP3.Recv()
+	if err != nil {
+		t.Errorf("error receiving message: %v", err)
+	}
+	if msgP3 == nil {
+		t.Fatal("expected non-nil message for player 3")
+	}
+	if msgP3.GameId == msgP1.GameId {
+		t.Errorf("expected Player 3 gameID to be different than Player 1 GameId, got p3 %q, got p1 %q", msgP3.GameId, msgP1.GameId)
 	}
 }
 
-func testServer(ctx context.Context) (proto.TetrisServiceClient, func()) {
+func testServer(ctx context.Context) (*grpc.ClientConn, func()) {
 	buffer := 101024 * 1024
 	lis := bufconn.Listen(buffer)
 
@@ -76,14 +97,10 @@ func testServer(ctx context.Context) (proto.TetrisServiceClient, func()) {
 		log.Printf("error connecting to server: %v", err)
 	}
 
-	closer := func() {
+	return conn, func() {
 		if err := lis.Close(); err != nil {
 			log.Printf("error closing listener: %v", err)
 		}
 		s.Stop()
 	}
-
-	client := proto.NewTetrisServiceClient(conn)
-
-	return client, closer
 }

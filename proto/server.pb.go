@@ -23,7 +23,8 @@ const (
 
 type GameMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"` // Tetris tetris = 1;
+	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
+	Player        int32                  `protobuf:"varint,2,opt,name=player,proto3" json:"player,omitempty"` // Tetris tetris = 1;
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -63,6 +64,13 @@ func (x *GameMessage) GetGameId() string {
 		return x.GameId
 	}
 	return ""
+}
+
+func (x *GameMessage) GetPlayer() int32 {
+	if x != nil {
+		return x.Player
+	}
+	return 0
 }
 
 type Tetromino struct {
@@ -317,9 +325,10 @@ var File_proto_server_proto protoreflect.FileDescriptor
 
 const file_proto_server_proto_rawDesc = "" +
 	"\n" +
-	"\x12proto/server.proto\"&\n" +
+	"\x12proto/server.proto\">\n" +
 	"\vGameMessage\x12\x17\n" +
-	"\agame_id\x18\x01 \x01(\tR\x06gameId\"\x9b\x01\n" +
+	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x16\n" +
+	"\x06player\x18\x02 \x01(\x05R\x06player\"\x9b\x01\n" +
 	"\tTetromino\x12\x1c\n" +
 	"\x04grid\x18\x01 \x03(\v2\b.GridRowR\x04grid\x12\f\n" +
 	"\x01x\x18\x02 \x01(\x05R\x01x\x12\f\n" +
