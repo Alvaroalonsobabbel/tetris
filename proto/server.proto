@@ -9,6 +9,7 @@ service TetrisService {
 message GameMessage {
     string game_id = 1;
     int32 player = 2;
+    string name = 3;
     // Tetris tetris = 1;
 }
 
@@ -16,9 +17,7 @@ message Tetromino {
   repeated GridRow grid = 1;
   int32 x = 2;
   int32 y = 3;
-  int32 ghost_y = 4;
-  string shape = 5;
-  string rotation_state = 6;
+  string shape = 4;
 }
 
 message GridRow {
@@ -28,9 +27,7 @@ message GridRow {
 message Tetris {
   repeated StackRow stack = 1;
   Tetromino tetromino = 2;
-  Tetromino next_tetromino = 3;
-  int32 level = 4;
-  int32 lines_clear = 5;
+  int32 lines_clear = 3;
 }
 
 message StackRow {

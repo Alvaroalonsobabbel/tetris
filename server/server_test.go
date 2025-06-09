@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
+	"sync"
 	"testing"
 	"tetris/proto"
 
@@ -11,6 +13,56 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 )
+
+func TestTetrisServer(t *testing.T) {
+	ctx := context.Background()
+	conn, closer := testServer(ctx)
+	defer closer()
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		p1 := proto.NewTetrisServiceClient(conn)
+		outP1, err := p1.GameSession(ctx)
+		if err != nil {
+			t.Errorf("error calling GameSession: %v", err)
+		}
+		p1msg := &proto.GameMessage{}
+		for range 4 {
+			if err := outP1.Send(p1msg); err != nil {
+				t.Errorf("error sending message: %v", err)
+			}
+			msg, err := outP1.Recv()
+			if err != nil {
+				t.Errorf("error receiving message for P1: %v", err)
+			}
+			fmt.Println(msg)
+			p1msg = msg
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		p2 := proto.NewTetrisServiceClient(conn)
+		outP2, err := p2.GameSession(ctx)
+		if err != nil {
+			t.Errorf("error calling GameSession: %v", err)
+		}
+		p2msg := &proto.GameMessage{}
+		for range 4 {
+			if err := outP2.Send(p2msg); err != nil {
+				t.Errorf("error sending message: %v", err)
+			}
+			msg, err := outP2.Recv()
+			if err != nil {
+				t.Errorf("error receiving message for P1: %v", err)
+			}
+			fmt.Println(msg)
+			p2msg = msg
+		}
+		wg.Done()
+	}()
+	wg.Wait()
+}
 
 func TestTetrisServerGameSessionQueue(t *testing.T) {
 	ctx := context.Background()

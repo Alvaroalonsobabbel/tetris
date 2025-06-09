@@ -24,7 +24,8 @@ const (
 type GameMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
-	Player        int32                  `protobuf:"varint,2,opt,name=player,proto3" json:"player,omitempty"` // Tetris tetris = 1;
+	Player        int32                  `protobuf:"varint,2,opt,name=player,proto3" json:"player,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"` // Tetris tetris = 1;
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -73,14 +74,19 @@ func (x *GameMessage) GetPlayer() int32 {
 	return 0
 }
 
+func (x *GameMessage) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 type Tetromino struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Grid          []*GridRow             `protobuf:"bytes,1,rep,name=grid,proto3" json:"grid,omitempty"`
 	X             int32                  `protobuf:"varint,2,opt,name=x,proto3" json:"x,omitempty"`
 	Y             int32                  `protobuf:"varint,3,opt,name=y,proto3" json:"y,omitempty"`
-	GhostY        int32                  `protobuf:"varint,4,opt,name=ghost_y,json=ghostY,proto3" json:"ghost_y,omitempty"`
-	Shape         string                 `protobuf:"bytes,5,opt,name=shape,proto3" json:"shape,omitempty"`
-	RotationState string                 `protobuf:"bytes,6,opt,name=rotation_state,json=rotationState,proto3" json:"rotation_state,omitempty"`
+	Shape         string                 `protobuf:"bytes,4,opt,name=shape,proto3" json:"shape,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -136,23 +142,9 @@ func (x *Tetromino) GetY() int32 {
 	return 0
 }
 
-func (x *Tetromino) GetGhostY() int32 {
-	if x != nil {
-		return x.GhostY
-	}
-	return 0
-}
-
 func (x *Tetromino) GetShape() string {
 	if x != nil {
 		return x.Shape
-	}
-	return ""
-}
-
-func (x *Tetromino) GetRotationState() string {
-	if x != nil {
-		return x.RotationState
 	}
 	return ""
 }
@@ -205,9 +197,7 @@ type Tetris struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Stack         []*StackRow            `protobuf:"bytes,1,rep,name=stack,proto3" json:"stack,omitempty"`
 	Tetromino     *Tetromino             `protobuf:"bytes,2,opt,name=tetromino,proto3" json:"tetromino,omitempty"`
-	NextTetromino *Tetromino             `protobuf:"bytes,3,opt,name=next_tetromino,json=nextTetromino,proto3" json:"next_tetromino,omitempty"`
-	Level         int32                  `protobuf:"varint,4,opt,name=level,proto3" json:"level,omitempty"`
-	LinesClear    int32                  `protobuf:"varint,5,opt,name=lines_clear,json=linesClear,proto3" json:"lines_clear,omitempty"`
+	LinesClear    int32                  `protobuf:"varint,3,opt,name=lines_clear,json=linesClear,proto3" json:"lines_clear,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -254,20 +244,6 @@ func (x *Tetris) GetTetromino() *Tetromino {
 		return x.Tetromino
 	}
 	return nil
-}
-
-func (x *Tetris) GetNextTetromino() *Tetromino {
-	if x != nil {
-		return x.NextTetromino
-	}
-	return nil
-}
-
-func (x *Tetris) GetLevel() int32 {
-	if x != nil {
-		return x.Level
-	}
-	return 0
 }
 
 func (x *Tetris) GetLinesClear() int32 {
@@ -325,27 +301,23 @@ var File_proto_server_proto protoreflect.FileDescriptor
 
 const file_proto_server_proto_rawDesc = "" +
 	"\n" +
-	"\x12proto/server.proto\">\n" +
+	"\x12proto/server.proto\"R\n" +
 	"\vGameMessage\x12\x17\n" +
 	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x16\n" +
-	"\x06player\x18\x02 \x01(\x05R\x06player\"\x9b\x01\n" +
+	"\x06player\x18\x02 \x01(\x05R\x06player\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"[\n" +
 	"\tTetromino\x12\x1c\n" +
 	"\x04grid\x18\x01 \x03(\v2\b.GridRowR\x04grid\x12\f\n" +
 	"\x01x\x18\x02 \x01(\x05R\x01x\x12\f\n" +
-	"\x01y\x18\x03 \x01(\x05R\x01y\x12\x17\n" +
-	"\aghost_y\x18\x04 \x01(\x05R\x06ghostY\x12\x14\n" +
-	"\x05shape\x18\x05 \x01(\tR\x05shape\x12%\n" +
-	"\x0erotation_state\x18\x06 \x01(\tR\rrotationState\"!\n" +
+	"\x01y\x18\x03 \x01(\x05R\x01y\x12\x14\n" +
+	"\x05shape\x18\x04 \x01(\tR\x05shape\"!\n" +
 	"\aGridRow\x12\x16\n" +
-	"\x06values\x18\x01 \x03(\bR\x06values\"\xbd\x01\n" +
+	"\x06values\x18\x01 \x03(\bR\x06values\"t\n" +
 	"\x06Tetris\x12\x1f\n" +
 	"\x05stack\x18\x01 \x03(\v2\t.StackRowR\x05stack\x12(\n" +
 	"\ttetromino\x18\x02 \x01(\v2\n" +
-	".TetrominoR\ttetromino\x121\n" +
-	"\x0enext_tetromino\x18\x03 \x01(\v2\n" +
-	".TetrominoR\rnextTetromino\x12\x14\n" +
-	"\x05level\x18\x04 \x01(\x05R\x05level\x12\x1f\n" +
-	"\vlines_clear\x18\x05 \x01(\x05R\n" +
+	".TetrominoR\ttetromino\x12\x1f\n" +
+	"\vlines_clear\x18\x03 \x01(\x05R\n" +
 	"linesClear\" \n" +
 	"\bStackRow\x12\x14\n" +
 	"\x05cells\x18\x01 \x03(\tR\x05cells2@\n" +
@@ -376,14 +348,13 @@ var file_proto_server_proto_depIdxs = []int32{
 	2, // 0: Tetromino.grid:type_name -> GridRow
 	4, // 1: Tetris.stack:type_name -> StackRow
 	1, // 2: Tetris.tetromino:type_name -> Tetromino
-	1, // 3: Tetris.next_tetromino:type_name -> Tetromino
-	0, // 4: TetrisService.GameSession:input_type -> GameMessage
-	0, // 5: TetrisService.GameSession:output_type -> GameMessage
-	5, // [5:6] is the sub-list for method output_type
-	4, // [4:5] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0, // 3: TetrisService.GameSession:input_type -> GameMessage
+	0, // 4: TetrisService.GameSession:output_type -> GameMessage
+	4, // [4:5] is the sub-list for method output_type
+	3, // [3:4] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_server_proto_init() }
