@@ -130,7 +130,7 @@ func (t *tetrisServer) GameSession(stream grpc.BidiStreamingServer[proto.GameMes
 				}
 			}()
 
-			log.Printf("Player %s connected to game: %s", rcv.Player, rcv.GetGameId())
+			log.Printf("Player %d connected to game: %s", rcv.Player, rcv.GetGameId())
 
 			switch rcv.Player {
 			case player1:

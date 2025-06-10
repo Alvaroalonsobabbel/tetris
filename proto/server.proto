@@ -19,26 +19,18 @@ message GameMessage {
     string game_id = 1;
     int32 player = 2;
     string name = 3;
-    Tetris tetris = 4;
-}
-
-message Tetromino {
-  repeated GridRow grid = 1;
-  int32 x = 2;
-  int32 y = 3;
-  string shape = 4;
-}
-
-message GridRow {
-  repeated bool values = 1;
+    Tetris stack = 4;
 }
 
 message Tetris {
-  repeated StackRow stack = 1;
-  Tetromino tetromino = 2;
-  int32 lines_clear = 3;
+  Stack stack = 1;
+  int32 lines_clear = 2;
 }
 
-message StackRow {
-  repeated string cells = 1;
+message Stack {
+    repeated Row rows = 1;
+}
+
+message Row {
+    repeated string cells = 1;
 }

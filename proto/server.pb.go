@@ -122,7 +122,7 @@ type GameMessage struct {
 	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
 	Player        int32                  `protobuf:"varint,2,opt,name=player,proto3" json:"player,omitempty"`
 	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Tetris        *Tetris                `protobuf:"bytes,4,opt,name=tetris,proto3" json:"tetris,omitempty"`
+	Stack         *Tetris                `protobuf:"bytes,4,opt,name=stack,proto3" json:"stack,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -178,137 +178,24 @@ func (x *GameMessage) GetName() string {
 	return ""
 }
 
-func (x *GameMessage) GetTetris() *Tetris {
+func (x *GameMessage) GetStack() *Tetris {
 	if x != nil {
-		return x.Tetris
-	}
-	return nil
-}
-
-type Tetromino struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Grid          []*GridRow             `protobuf:"bytes,1,rep,name=grid,proto3" json:"grid,omitempty"`
-	X             int32                  `protobuf:"varint,2,opt,name=x,proto3" json:"x,omitempty"`
-	Y             int32                  `protobuf:"varint,3,opt,name=y,proto3" json:"y,omitempty"`
-	Shape         string                 `protobuf:"bytes,4,opt,name=shape,proto3" json:"shape,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Tetromino) Reset() {
-	*x = Tetromino{}
-	mi := &file_proto_server_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Tetromino) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Tetromino) ProtoMessage() {}
-
-func (x *Tetromino) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Tetromino.ProtoReflect.Descriptor instead.
-func (*Tetromino) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Tetromino) GetGrid() []*GridRow {
-	if x != nil {
-		return x.Grid
-	}
-	return nil
-}
-
-func (x *Tetromino) GetX() int32 {
-	if x != nil {
-		return x.X
-	}
-	return 0
-}
-
-func (x *Tetromino) GetY() int32 {
-	if x != nil {
-		return x.Y
-	}
-	return 0
-}
-
-func (x *Tetromino) GetShape() string {
-	if x != nil {
-		return x.Shape
-	}
-	return ""
-}
-
-type GridRow struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Values        []bool                 `protobuf:"varint,1,rep,packed,name=values,proto3" json:"values,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GridRow) Reset() {
-	*x = GridRow{}
-	mi := &file_proto_server_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GridRow) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GridRow) ProtoMessage() {}
-
-func (x *GridRow) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GridRow.ProtoReflect.Descriptor instead.
-func (*GridRow) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *GridRow) GetValues() []bool {
-	if x != nil {
-		return x.Values
+		return x.Stack
 	}
 	return nil
 }
 
 type Tetris struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Stack         []*StackRow            `protobuf:"bytes,1,rep,name=stack,proto3" json:"stack,omitempty"`
-	Tetromino     *Tetromino             `protobuf:"bytes,2,opt,name=tetromino,proto3" json:"tetromino,omitempty"`
-	LinesClear    int32                  `protobuf:"varint,3,opt,name=lines_clear,json=linesClear,proto3" json:"lines_clear,omitempty"`
+	Stack         *Stack                 `protobuf:"bytes,1,opt,name=stack,proto3" json:"stack,omitempty"`
+	LinesClear    int32                  `protobuf:"varint,2,opt,name=lines_clear,json=linesClear,proto3" json:"lines_clear,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Tetris) Reset() {
 	*x = Tetris{}
-	mi := &file_proto_server_proto_msgTypes[5]
+	mi := &file_proto_server_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -320,7 +207,7 @@ func (x *Tetris) String() string {
 func (*Tetris) ProtoMessage() {}
 
 func (x *Tetris) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[5]
+	mi := &file_proto_server_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -333,19 +220,12 @@ func (x *Tetris) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tetris.ProtoReflect.Descriptor instead.
 func (*Tetris) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{5}
+	return file_proto_server_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Tetris) GetStack() []*StackRow {
+func (x *Tetris) GetStack() *Stack {
 	if x != nil {
 		return x.Stack
-	}
-	return nil
-}
-
-func (x *Tetris) GetTetromino() *Tetromino {
-	if x != nil {
-		return x.Tetromino
 	}
 	return nil
 }
@@ -357,28 +237,28 @@ func (x *Tetris) GetLinesClear() int32 {
 	return 0
 }
 
-type StackRow struct {
+type Stack struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cells         []string               `protobuf:"bytes,1,rep,name=cells,proto3" json:"cells,omitempty"`
+	Rows          []*Row                 `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StackRow) Reset() {
-	*x = StackRow{}
-	mi := &file_proto_server_proto_msgTypes[6]
+func (x *Stack) Reset() {
+	*x = Stack{}
+	mi := &file_proto_server_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StackRow) String() string {
+func (x *Stack) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StackRow) ProtoMessage() {}
+func (*Stack) ProtoMessage() {}
 
-func (x *StackRow) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[6]
+func (x *Stack) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_server_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -389,12 +269,56 @@ func (x *StackRow) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StackRow.ProtoReflect.Descriptor instead.
-func (*StackRow) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{6}
+// Deprecated: Use Stack.ProtoReflect.Descriptor instead.
+func (*Stack) Descriptor() ([]byte, []int) {
+	return file_proto_server_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *StackRow) GetCells() []string {
+func (x *Stack) GetRows() []*Row {
+	if x != nil {
+		return x.Rows
+	}
+	return nil
+}
+
+type Row struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cells         []string               `protobuf:"bytes,1,rep,name=cells,proto3" json:"cells,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Row) Reset() {
+	*x = Row{}
+	mi := &file_proto_server_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Row) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Row) ProtoMessage() {}
+
+func (x *Row) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_server_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Row.ProtoReflect.Descriptor instead.
+func (*Row) Descriptor() ([]byte, []int) {
+	return file_proto_server_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Row) GetCells() []string {
 	if x != nil {
 		return x.Cells
 	}
@@ -411,26 +335,19 @@ const file_proto_server_proto_rawDesc = "" +
 	"GameParams\x12\x17\n" +
 	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x16\n" +
 	"\x06player\x18\x02 \x01(\x05R\x06player\x12\x18\n" +
-	"\astarted\x18\x03 \x01(\bR\astarted\"s\n" +
+	"\astarted\x18\x03 \x01(\bR\astarted\"q\n" +
 	"\vGameMessage\x12\x17\n" +
 	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x16\n" +
 	"\x06player\x18\x02 \x01(\x05R\x06player\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1f\n" +
-	"\x06tetris\x18\x04 \x01(\v2\a.TetrisR\x06tetris\"[\n" +
-	"\tTetromino\x12\x1c\n" +
-	"\x04grid\x18\x01 \x03(\v2\b.GridRowR\x04grid\x12\f\n" +
-	"\x01x\x18\x02 \x01(\x05R\x01x\x12\f\n" +
-	"\x01y\x18\x03 \x01(\x05R\x01y\x12\x14\n" +
-	"\x05shape\x18\x04 \x01(\tR\x05shape\"!\n" +
-	"\aGridRow\x12\x16\n" +
-	"\x06values\x18\x01 \x03(\bR\x06values\"t\n" +
-	"\x06Tetris\x12\x1f\n" +
-	"\x05stack\x18\x01 \x03(\v2\t.StackRowR\x05stack\x12(\n" +
-	"\ttetromino\x18\x02 \x01(\v2\n" +
-	".TetrominoR\ttetromino\x12\x1f\n" +
-	"\vlines_clear\x18\x03 \x01(\x05R\n" +
-	"linesClear\" \n" +
-	"\bStackRow\x12\x14\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1d\n" +
+	"\x05stack\x18\x04 \x01(\v2\a.TetrisR\x05stack\"G\n" +
+	"\x06Tetris\x12\x1c\n" +
+	"\x05stack\x18\x01 \x01(\v2\x06.StackR\x05stack\x12\x1f\n" +
+	"\vlines_clear\x18\x02 \x01(\x05R\n" +
+	"linesClear\"!\n" +
+	"\x05Stack\x12\x18\n" +
+	"\x04rows\x18\x01 \x03(\v2\x04.RowR\x04rows\"\x1b\n" +
+	"\x03Row\x12\x14\n" +
 	"\x05cells\x18\x01 \x03(\tR\x05cells2m\n" +
 	"\rTetrisService\x12+\n" +
 	"\aNewGame\x12\x0f.NewGameRequest\x1a\v.GameParams\"\x000\x01\x12/\n" +
@@ -448,30 +365,28 @@ func file_proto_server_proto_rawDescGZIP() []byte {
 	return file_proto_server_proto_rawDescData
 }
 
-var file_proto_server_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_server_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_proto_server_proto_goTypes = []any{
 	(*NewGameRequest)(nil), // 0: NewGameRequest
 	(*GameParams)(nil),     // 1: GameParams
 	(*GameMessage)(nil),    // 2: GameMessage
-	(*Tetromino)(nil),      // 3: Tetromino
-	(*GridRow)(nil),        // 4: GridRow
-	(*Tetris)(nil),         // 5: Tetris
-	(*StackRow)(nil),       // 6: StackRow
+	(*Tetris)(nil),         // 3: Tetris
+	(*Stack)(nil),          // 4: Stack
+	(*Row)(nil),            // 5: Row
 }
 var file_proto_server_proto_depIdxs = []int32{
-	5, // 0: GameMessage.tetris:type_name -> Tetris
-	4, // 1: Tetromino.grid:type_name -> GridRow
-	6, // 2: Tetris.stack:type_name -> StackRow
-	3, // 3: Tetris.tetromino:type_name -> Tetromino
-	0, // 4: TetrisService.NewGame:input_type -> NewGameRequest
-	2, // 5: TetrisService.GameSession:input_type -> GameMessage
-	1, // 6: TetrisService.NewGame:output_type -> GameParams
-	2, // 7: TetrisService.GameSession:output_type -> GameMessage
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // 0: GameMessage.stack:type_name -> Tetris
+	4, // 1: Tetris.stack:type_name -> Stack
+	5, // 2: Stack.rows:type_name -> Row
+	0, // 3: TetrisService.NewGame:input_type -> NewGameRequest
+	2, // 4: TetrisService.GameSession:input_type -> GameMessage
+	1, // 5: TetrisService.NewGame:output_type -> GameParams
+	2, // 6: TetrisService.GameSession:output_type -> GameMessage
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_server_proto_init() }
@@ -485,7 +400,7 @@ func file_proto_server_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_server_proto_rawDesc), len(file_proto_server_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
