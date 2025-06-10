@@ -15,6 +15,9 @@ build-tetris: mod
 	@CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ./bin/tetris
 	@chmod +x ./bin/tetris
 
+run-server: mod
+	@go run cmd/server/main.go
+
 mod:
 	@go mod download
 
