@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	TetrisService_NewGame_FullMethodName     = "/TetrisService/NewGame"
 	TetrisService_GameSession_FullMethodName = "/TetrisService/GameSession"
 )
 
@@ -26,6 +27,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TetrisServiceClient interface {
+	NewGame(ctx context.Context, in *NewGameRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GameParams], error)
 	GameSession(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GameMessage, GameMessage], error)
 }
 
@@ -37,9 +39,28 @@ func NewTetrisServiceClient(cc grpc.ClientConnInterface) TetrisServiceClient {
 	return &tetrisServiceClient{cc}
 }
 
+func (c *tetrisServiceClient) NewGame(ctx context.Context, in *NewGameRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GameParams], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &TetrisService_ServiceDesc.Streams[0], TetrisService_NewGame_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[NewGameRequest, GameParams]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TetrisService_NewGameClient = grpc.ServerStreamingClient[GameParams]
+
 func (c *tetrisServiceClient) GameSession(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GameMessage, GameMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &TetrisService_ServiceDesc.Streams[0], TetrisService_GameSession_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &TetrisService_ServiceDesc.Streams[1], TetrisService_GameSession_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +75,7 @@ type TetrisService_GameSessionClient = grpc.BidiStreamingClient[GameMessage, Gam
 // All implementations must embed UnimplementedTetrisServiceServer
 // for forward compatibility.
 type TetrisServiceServer interface {
+	NewGame(*NewGameRequest, grpc.ServerStreamingServer[GameParams]) error
 	GameSession(grpc.BidiStreamingServer[GameMessage, GameMessage]) error
 	mustEmbedUnimplementedTetrisServiceServer()
 }
@@ -65,6 +87,9 @@ type TetrisServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedTetrisServiceServer struct{}
 
+func (UnimplementedTetrisServiceServer) NewGame(*NewGameRequest, grpc.ServerStreamingServer[GameParams]) error {
+	return status.Errorf(codes.Unimplemented, "method NewGame not implemented")
+}
 func (UnimplementedTetrisServiceServer) GameSession(grpc.BidiStreamingServer[GameMessage, GameMessage]) error {
 	return status.Errorf(codes.Unimplemented, "method GameSession not implemented")
 }
@@ -89,6 +114,17 @@ func RegisterTetrisServiceServer(s grpc.ServiceRegistrar, srv TetrisServiceServe
 	s.RegisterService(&TetrisService_ServiceDesc, srv)
 }
 
+func _TetrisService_NewGame_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(NewGameRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(TetrisServiceServer).NewGame(m, &grpc.GenericServerStream[NewGameRequest, GameParams]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TetrisService_NewGameServer = grpc.ServerStreamingServer[GameParams]
+
 func _TetrisService_GameSession_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(TetrisServiceServer).GameSession(&grpc.GenericServerStream[GameMessage, GameMessage]{ServerStream: stream})
 }
@@ -104,6 +140,11 @@ var TetrisService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*TetrisServiceServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "NewGame",
+			Handler:       _TetrisService_NewGame_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "GameSession",
 			Handler:       _TetrisService_GameSession_Handler,
