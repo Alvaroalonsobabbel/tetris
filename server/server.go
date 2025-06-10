@@ -59,7 +59,9 @@ func (t *tetrisServer) NewGame(_ *proto.NewGameRequest, stream proto.TetrisServi
 	case "":
 		gameID = uuid.New().String()
 		t.gameInstance[gameID] = newGame()
+		log.Printf("New game created: %s", gameID)
 		t.gameInstance[gameID].p1conn = true
+		log.Printf("Player 1 connected to game: %s", gameID)
 		t.waitListID = gameID
 		gameParams = &proto.GameParams{GameId: gameID, Player: player1}
 		if err := stream.Send(gameParams); err != nil {
@@ -70,6 +72,7 @@ func (t *tetrisServer) NewGame(_ *proto.NewGameRequest, stream proto.TetrisServi
 		t.waitListID = ""
 		gameParams = &proto.GameParams{GameId: gameID, Player: player2}
 		t.gameInstance[gameID].p2conn = true
+		log.Printf("Player 2 connected to game: %s", gameID)
 		if err := stream.Send(gameParams); err != nil {
 			return fmt.Errorf("failed to send RequestGameResponse message: %v", err)
 		}
@@ -126,6 +129,8 @@ func (t *tetrisServer) GameSession(stream grpc.BidiStreamingServer[proto.GameMes
 					delete(t.gameInstance, rcv.GetGameId())
 				}
 			}()
+
+			log.Printf("Player %s connected to game: %s", rcv.Player, rcv.GetGameId())
 
 			switch rcv.Player {
 			case player1:
