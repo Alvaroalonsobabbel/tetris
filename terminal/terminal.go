@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync/atomic"
+	"tetris/proto"
 	"tetris/tetris"
 	"text/template"
 
@@ -30,6 +31,22 @@ const (
 //go:embed "layout.tmpl"
 var layout string
 
+var colorMap = map[tetris.Shape]string{
+	tetris.I: Cyan,
+	tetris.J: Blue,
+	tetris.L: Orange,
+	tetris.O: Yellow,
+	tetris.S: Green,
+	tetris.Z: Red,
+	tetris.T: Magenta,
+}
+
+type templateData struct {
+	Local   *tetris.Tetris
+	Remote  *proto.GameMessage
+	NoGhost bool
+}
+
 type Terminal struct {
 	writer       io.Writer
 	tetris       *tetris.Game
@@ -38,10 +55,11 @@ type Terminal struct {
 	keysEventsCh <-chan keyboard.KeyEvent
 	doneCh       chan bool
 	lobby        atomic.Bool
+	td           *templateData
 }
 
-func New(w io.Writer, l *slog.Logger, noGhost bool) *Terminal {
-	tp, err := loadTemplate(noGhost)
+func New(w io.Writer, l *slog.Logger, ng bool) *Terminal {
+	tp, err := loadTemplate()
 	if err != nil {
 		log.Fatalf("unable to load template: %v\n", err)
 	}
@@ -57,6 +75,7 @@ func New(w io.Writer, l *slog.Logger, noGhost bool) *Terminal {
 		doneCh:       make(chan bool),
 		logger:       l,
 		lobby:        atomic.Bool{},
+		td:           &templateData{NoGhost: ng},
 	}
 }
 
@@ -133,72 +152,19 @@ func (t *Terminal) renderLobby() {
 	fmt.Fprint(t.writer, "\033[14;9H+--------------------------------------+")
 }
 
-func (t *Terminal) renderGame(update *tetris.Tetris) {
+func (t *Terminal) renderGame(update *tetris.Tetris) { // change tetris.Tetris to templateData
+	t.td.Local = update
 	fmt.Fprint(t.writer, resetPos)
-	if err := t.template.Execute(t.writer, update); err != nil {
+	if err := t.template.Execute(t.writer, t.td); err != nil {
 		t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
 	}
 }
 
-func loadTemplate(noGhost bool) (*template.Template, error) {
-	colorMap := map[tetris.Shape]string{
-		tetris.I: Cyan,
-		tetris.J: Blue,
-		tetris.L: Orange,
-		tetris.O: Yellow,
-		tetris.S: Green,
-		tetris.Z: Red,
-		tetris.T: Magenta,
-	}
+func loadTemplate() (*template.Template, error) {
 	funcMap := template.FuncMap{
-		"renderStack": func(t *tetris.Tetris) [20][10]string {
-			rendered := [20][10]string{}
-
-			// renders the stack
-			for y := range 20 {
-				for x := range 10 {
-					out := "  "
-					v := t.Stack[y][x]
-					c, ok := colorMap[v]
-					if ok {
-						out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
-					}
-					// we deduct 19 from the 'y' index because the range over function
-					// in the tempalate can only range over from 0 upwards. we do the
-					// same again when rendering the current tetromino to the screen.
-					rendered[19-y][x] = out
-				}
-			}
-
-			// renders the current tetromino if exist
-			if t.Tetromino != nil {
-				for iy, y := range t.Tetromino.Grid {
-					for ix, x := range y {
-						if x {
-							if !noGhost {
-								rendered[19-t.Tetromino.GhostY+iy][t.Tetromino.X+ix] = "[]"
-							}
-							rendered[19-t.Tetromino.Y+iy][t.Tetromino.X+ix] = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", colorMap[t.Tetromino.Shape])
-						}
-					}
-				}
-			}
-
-			return rendered
-		},
-		"renderNext": func(t *tetris.Tetris) []string {
-			var rendered []string
-			for i := range 2 {
-				row := []string{"  ", "  ", "  ", "  "}
-				for iv, v := range t.NexTetromino.Grid[i] {
-					if v {
-						row[iv] = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", colorMap[t.NexTetromino.Shape])
-					}
-				}
-				rendered = append(rendered, strings.Join(row, ""))
-			}
-			return rendered
-		},
+		"localStack":  localStack,
+		"remoteStack": remoteStack,
+		"nextPiece":   nextPiece,
 	}
 
 	// we use the console raw so new lines don't automatically transform into carriage return
@@ -206,4 +172,104 @@ func loadTemplate(noGhost bool) (*template.Template, error) {
 	layout = strings.ReplaceAll(layout, "\n", "\r\n")
 	layout = strings.ReplaceAll(layout, "Terminal Tetris", "\033[1mTerminal Tetris\033[0m")
 	return template.New("layout").Funcs(funcMap).Parse(layout)
+}
+
+func localStack(t *templateData) [20][10]string {
+	rendered := [20][10]string{}
+
+	// renders the stack
+	for y := range 20 {
+		for x := range 10 {
+			out := "  "
+			v := t.Local.Stack[y][x]
+			c, ok := colorMap[v]
+			if ok {
+				out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
+			}
+			// we deduct 19 from the 'y' index because the range over function
+			// in the tempalate can only range over from 0 upwards. we do the
+			// same again when rendering the current tetromino to the screen.
+			rendered[19-y][x] = out
+		}
+	}
+
+	// renders the current tetromino if exist
+	if t.Local.Tetromino != nil {
+		for iy, y := range t.Local.Tetromino.Grid {
+			for ix, x := range y {
+				if x {
+					if !t.NoGhost {
+						rendered[19-t.Local.Tetromino.GhostY+iy][t.Local.Tetromino.X+ix] = "[]"
+					}
+					rendered[19-t.Local.Tetromino.Y+iy][t.Local.Tetromino.X+ix] = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", colorMap[t.Local.Tetromino.Shape])
+				}
+			}
+		}
+	}
+	return rendered
+}
+
+func remoteStack(t *templateData) [20][10]string {
+	rendered := [20][10]string{}
+
+	for y := range 20 {
+		for x := range 10 {
+			out := "  "
+			c, ok := colorMap[tetris.Shape(t.Remote.Stack.Stack.Rows[y].Cells[x])]
+			if ok {
+				out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
+			}
+			// we deduct 19 from the 'y' index because the range over function
+			// in the tempalate can only range over from 0 upwards. we do the
+			// same again when rendering the current tetromino to the screen.
+			rendered[19-y][x] = out
+		}
+	}
+	return rendered
+}
+
+func nextPiece(t *templateData) []string {
+	var rendered []string
+	for i := range 2 {
+		row := []string{"  ", "  ", "  ", "  "}
+		for iv, v := range t.Local.NexTetromino.Grid[i] {
+			if v {
+				row[iv] = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", colorMap[t.Local.NexTetromino.Shape])
+			}
+		}
+		rendered = append(rendered, strings.Join(row, ""))
+	}
+	return rendered
+}
+
+func stack2Proto(t *tetris.Tetris) *proto.Tetris {
+	rendered := &proto.Tetris{
+		Stack:      &proto.Stack{Rows: make([]*proto.Row, 20)},
+		LinesClear: int32(t.LinesClear),
+	}
+	for i := range rendered.Stack.Rows {
+		rendered.Stack.Rows[i] = &proto.Row{
+			Cells: make([]string, 10),
+		}
+	}
+
+	for iy, y := range t.Stack {
+		for ix, x := range y {
+			if x != tetris.Shape("") {
+				rendered.Stack.Rows[iy].Cells[ix] = string(x)
+			}
+		}
+	}
+
+	// renders the current tetromino if exist
+	if t.Tetromino != nil {
+		for iy, y := range t.Tetromino.Grid {
+			for ix, x := range y {
+				if x {
+					rendered.Stack.Rows[t.Tetromino.Y-iy].Cells[t.Tetromino.X+ix] = string(t.Tetromino.Shape)
+				}
+			}
+		}
+	}
+	return rendered
 }

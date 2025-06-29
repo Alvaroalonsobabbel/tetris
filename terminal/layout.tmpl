@@ -1,9 +1,9 @@
-{{- $root := . -}}{{- $next := renderNext . -}}
-+--------------------+{{range $ix, $row := renderStack .}}
+{{- $root := . -}}{{- $next := nextPiece . -}}
++--------------------+{{range $ix, $row := localStack .}}
 |{{range $cell := $row}}{{$cell}}{{end}}|
 {{- if eq $ix 0}}   Terminal Tetris{{- end -}}
-{{- if eq $ix 5}}           Level: {{$root.Level}}{{- end -}}
-{{- if eq $ix 6}}   Lines Cleared: {{$root.LinesClear}}{{- end -}}
+{{- if eq $ix 5}}           Level: {{$root.Local.Level}}{{- end -}}
+{{- if eq $ix 6}}   Lines Cleared: {{$root.Local.LinesClear}}{{- end -}}
 {{- if eq $ix 7}}            Next: {{ index $next 0 }}{{- end -}}
 {{- if eq $ix 8}}                  {{ index $next 1 }}{{- end -}}
 {{- if eq $ix 13}}           Right: →, d{{- end -}}

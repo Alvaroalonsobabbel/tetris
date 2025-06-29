@@ -50,11 +50,14 @@ func newTetris() *Tetris {
 
 // NewTestTetris creates a new Tetris struct with a test tetromino.
 func NewTestTetris(shape Shape) *Tetris {
-	return &Tetris{
-		Tetromino: shapeMap[shape](),
-		Stack:     emptyStack(),
-		Level:     1,
+	t := &Tetris{
+		Tetromino:    shapeMap[shape](),
+		NexTetromino: shapeMap[shape](),
+		Stack:        emptyStack(),
+		Level:        1,
 	}
+	t.Tetromino.GhostY = t.Tetromino.Y + t.dropDownDelta()
+	return t
 }
 
 func (t *Tetris) action(a Action) {
