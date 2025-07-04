@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"io"
@@ -13,6 +14,8 @@ import (
 	"text/template"
 
 	"github.com/eiannone/keyboard"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -54,8 +57,10 @@ type Terminal struct {
 	logger       *slog.Logger
 	keysEventsCh <-chan keyboard.KeyEvent
 	doneCh       chan bool
+	remoteCh     chan *proto.GameMessage
 	lobby        atomic.Bool
 	td           *templateData
+	client       proto.TetrisServiceClient
 }
 
 func New(w io.Writer, l *slog.Logger, ng bool) *Terminal {
@@ -67,31 +72,39 @@ func New(w io.Writer, l *slog.Logger, ng bool) *Terminal {
 	if err != nil {
 		log.Fatalf("unable to open keyboard: %v\n", err)
 	}
+	t := tetris.NewGame()
 	return &Terminal{
 		writer:       w,
-		tetris:       tetris.NewGame(),
+		tetris:       t,
 		template:     tp,
 		keysEventsCh: kc,
 		doneCh:       make(chan bool),
+		remoteCh:     make(chan *proto.GameMessage),
 		logger:       l,
 		lobby:        atomic.Bool{},
-		td:           &templateData{NoGhost: ng},
+		td:           &templateData{NoGhost: ng, Local: t.Read()},
 	}
 }
 
 func (t *Terminal) Start() {
 	go t.listenTetris()
 	go t.listenKB()
-	t.renderGame(t.tetris.Read())
+	t.renderGame(t.td)
 	t.renderLobby()
 	<-t.doneCh
+	close(t.remoteCh)
+	close(t.doneCh)
 }
 
 func (t *Terminal) listenTetris() {
 	for {
 		select {
 		case <-t.tetris.UpdateCh:
-			t.renderGame(t.tetris.Read())
+			t.td.Local = t.tetris.Read()
+			t.renderGame(t.td)
+		case r := <-t.remoteCh:
+			t.td.Remote = r
+			t.renderGame(t.td)
 		case <-t.tetris.GameOverCh:
 			t.renderLobby()
 		}
@@ -120,6 +133,36 @@ kbListener:
 				// clear the screen after the lobby
 				fmt.Fprint(t.writer, "\033[2J\033[H")
 				t.tetris.Start()
+			case 'o':
+				conn, err := grpc.NewClient("127.0.0.1:9000", grpc.WithTransportCredentials(insecure.NewCredentials()))
+				if err != nil {
+					t.logger.Error("unable to create gRPC client", slog.String("error", event.Err.Error()))
+				}
+				t.client = proto.NewTetrisServiceClient(conn)
+
+				ng, err := t.client.NewGame(context.Background(), &proto.NewGameRequest{})
+				if err != nil {
+					t.logger.Error("unable to create gRPC NewGame", slog.String("error", event.Err.Error()))
+				}
+				gameParams := &proto.GameParams{}
+				for gameParams.Started {
+					gameParams, err = ng.Recv()
+					if err != nil {
+						t.logger.Error("unable to receive gRPC from NewGame", slog.String("error", event.Err.Error()))
+					}
+				}
+				gs, err := t.client.GameSession(context.Background())
+				if err != nil {
+					t.logger.Error("unable to create gRPC GameSession", slog.String("error", event.Err.Error()))
+				}
+				gs.Send(&proto.GameMessage{
+					GameId: gameParams.GameId,
+					Player: gameParams.Player,
+					Name:   "HERE GOES THE NAME",
+					// Stack:  stack2Proto(t * tetris.Tetris),
+				})
+
+				// t.client.NewGame(ctx context.Context, in *proto.NewGameRequest, opts ...grpc.CallOption)
 			case 'q':
 				break kbListener
 			}
@@ -152,10 +195,9 @@ func (t *Terminal) renderLobby() {
 	fmt.Fprint(t.writer, "\033[14;9H+--------------------------------------+")
 }
 
-func (t *Terminal) renderGame(update *tetris.Tetris) { // change tetris.Tetris to templateData
-	t.td.Local = update
+func (t *Terminal) renderGame(update *templateData) {
 	fmt.Fprint(t.writer, resetPos)
-	if err := t.template.Execute(t.writer, t.td); err != nil {
+	if err := t.template.Execute(t.writer, update); err != nil {
 		t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
 	}
 }
