@@ -23,6 +23,7 @@ const (
 
 type NewGameRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -57,11 +58,19 @@ func (*NewGameRequest) Descriptor() ([]byte, []int) {
 	return file_proto_server_proto_rawDescGZIP(), []int{0}
 }
 
+func (x *NewGameRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 type GameParams struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
 	Player        int32                  `protobuf:"varint,2,opt,name=player,proto3" json:"player,omitempty"`
-	Started       bool                   `protobuf:"varint,3,opt,name=started,proto3" json:"started,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Started       bool                   `protobuf:"varint,4,opt,name=started,proto3" json:"started,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,6 +119,13 @@ func (x *GameParams) GetPlayer() int32 {
 	return 0
 }
 
+func (x *GameParams) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 func (x *GameParams) GetStarted() bool {
 	if x != nil {
 		return x.Started
@@ -119,10 +135,8 @@ func (x *GameParams) GetStarted() bool {
 
 type GameMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
-	Player        int32                  `protobuf:"varint,2,opt,name=player,proto3" json:"player,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Stack         *Tetris                `protobuf:"bytes,4,opt,name=stack,proto3" json:"stack,omitempty"`
+	GameParams    *GameParams            `protobuf:"bytes,1,opt,name=game_params,json=gameParams,proto3" json:"game_params,omitempty"`
+	Stack         *Tetris                `protobuf:"bytes,2,opt,name=stack,proto3" json:"stack,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -157,25 +171,11 @@ func (*GameMessage) Descriptor() ([]byte, []int) {
 	return file_proto_server_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GameMessage) GetGameId() string {
+func (x *GameMessage) GetGameParams() *GameParams {
 	if x != nil {
-		return x.GameId
+		return x.GameParams
 	}
-	return ""
-}
-
-func (x *GameMessage) GetPlayer() int32 {
-	if x != nil {
-		return x.Player
-	}
-	return 0
-}
-
-func (x *GameMessage) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
+	return nil
 }
 
 func (x *GameMessage) GetStack() *Tetris {
@@ -329,18 +329,19 @@ var File_proto_server_proto protoreflect.FileDescriptor
 
 const file_proto_server_proto_rawDesc = "" +
 	"\n" +
-	"\x12proto/server.proto\"\x10\n" +
-	"\x0eNewGameRequest\"W\n" +
+	"\x12proto/server.proto\"$\n" +
+	"\x0eNewGameRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"k\n" +
 	"\n" +
 	"GameParams\x12\x17\n" +
 	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x16\n" +
-	"\x06player\x18\x02 \x01(\x05R\x06player\x12\x18\n" +
-	"\astarted\x18\x03 \x01(\bR\astarted\"q\n" +
-	"\vGameMessage\x12\x17\n" +
-	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x16\n" +
 	"\x06player\x18\x02 \x01(\x05R\x06player\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1d\n" +
-	"\x05stack\x18\x04 \x01(\v2\a.TetrisR\x05stack\"G\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x18\n" +
+	"\astarted\x18\x04 \x01(\bR\astarted\"Z\n" +
+	"\vGameMessage\x12,\n" +
+	"\vgame_params\x18\x01 \x01(\v2\v.GameParamsR\n" +
+	"gameParams\x12\x1d\n" +
+	"\x05stack\x18\x02 \x01(\v2\a.TetrisR\x05stack\"G\n" +
 	"\x06Tetris\x12\x1c\n" +
 	"\x05stack\x18\x01 \x01(\v2\x06.StackR\x05stack\x12\x1f\n" +
 	"\vlines_clear\x18\x02 \x01(\x05R\n" +
@@ -375,18 +376,19 @@ var file_proto_server_proto_goTypes = []any{
 	(*Row)(nil),            // 5: Row
 }
 var file_proto_server_proto_depIdxs = []int32{
-	3, // 0: GameMessage.stack:type_name -> Tetris
-	4, // 1: Tetris.stack:type_name -> Stack
-	5, // 2: Stack.rows:type_name -> Row
-	0, // 3: TetrisService.NewGame:input_type -> NewGameRequest
-	2, // 4: TetrisService.GameSession:input_type -> GameMessage
-	1, // 5: TetrisService.NewGame:output_type -> GameParams
-	2, // 6: TetrisService.GameSession:output_type -> GameMessage
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 0: GameMessage.game_params:type_name -> GameParams
+	3, // 1: GameMessage.stack:type_name -> Tetris
+	4, // 2: Tetris.stack:type_name -> Stack
+	5, // 3: Stack.rows:type_name -> Row
+	0, // 4: TetrisService.NewGame:input_type -> NewGameRequest
+	2, // 5: TetrisService.GameSession:input_type -> GameMessage
+	1, // 6: TetrisService.NewGame:output_type -> GameParams
+	2, // 7: TetrisService.GameSession:output_type -> GameMessage
+	6, // [6:8] is the sub-list for method output_type
+	4, // [4:6] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proto_server_proto_init() }

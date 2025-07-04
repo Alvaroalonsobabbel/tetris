@@ -50,29 +50,30 @@ func New() proto.TetrisServiceServer {
 	return &tetrisServer{gameInstance: make(map[string]*game)}
 }
 
-func (t *tetrisServer) NewGame(_ *proto.NewGameRequest, stream proto.TetrisService_NewGameServer) error {
-	var gameParams *proto.GameParams
-	var gameID string
+func (t *tetrisServer) NewGame(gr *proto.NewGameRequest, stream proto.TetrisService_NewGameServer) error {
+	gameParams := &proto.GameParams{
+		Name:   gr.GetName(),
+		Player: player1,
+	}
 
 	t.mu.Lock()
 	switch t.waitListID {
 	case "":
-		gameID = uuid.New().String()
-		t.gameInstance[gameID] = newGame()
-		log.Printf("New game created: %s", gameID)
-		t.gameInstance[gameID].p1conn = true
-		log.Printf("Player 1 connected to game: %s", gameID)
-		t.waitListID = gameID
-		gameParams = &proto.GameParams{GameId: gameID, Player: player1}
+		gameParams.GameId = uuid.New().String()
+		t.gameInstance[gameParams.GameId] = newGame()
+		log.Printf("New game created: %s", gameParams.GetGameId())
+		t.gameInstance[gameParams.GameId].p1conn = true
+		log.Printf("%s (player %d) connected to game: %s", gameParams.GetName(), gameParams.GetPlayer(), gameParams.GetGameId())
+		t.waitListID = gameParams.GetGameId()
 		if err := stream.Send(gameParams); err != nil {
 			return fmt.Errorf("failed to send RequestGameResponse message: %v", err)
 		}
 	default:
-		gameID = t.waitListID
+		gameParams.GameId = t.waitListID
 		t.waitListID = ""
-		gameParams = &proto.GameParams{GameId: gameID, Player: player2}
-		t.gameInstance[gameID].p2conn = true
-		log.Printf("Player 2 connected to game: %s", gameID)
+		gameParams.Player = player2
+		t.gameInstance[gameParams.GameId].p2conn = true
+		log.Printf("%s (player %d) connected to game: %s", gameParams.GetName(), gameParams.GetPlayer(), gameParams.GetGameId())
 		if err := stream.Send(gameParams); err != nil {
 			return fmt.Errorf("failed to send RequestGameResponse message: %v", err)
 		}
@@ -88,7 +89,7 @@ func (t *tetrisServer) NewGame(_ *proto.NewGameRequest, stream proto.TetrisServi
 		}
 
 		t.mu.Lock()
-		gameStarted := t.gameInstance[gameID].isStart()
+		gameStarted := t.gameInstance[gameParams.GameId].isStart()
 		t.mu.Unlock()
 
 		if gameStarted {
@@ -118,21 +119,21 @@ func (t *tetrisServer) GameSession(stream grpc.BidiStreamingServer[proto.GameMes
 		}
 		// Game comm setup stage
 		if !gameCommOK {
-			g, ok := t.gameInstance[rcv.GetGameId()]
+			g, ok := t.gameInstance[rcv.GameParams.GetGameId()]
 			if !ok {
 				return fmt.Errorf("game not found")
 			}
 			defer func() {
-				_, ok := t.gameInstance[rcv.GetGameId()]
+				_, ok := t.gameInstance[rcv.GameParams.GetGameId()]
 				if ok {
 					g.close()
-					delete(t.gameInstance, rcv.GetGameId())
+					delete(t.gameInstance, rcv.GameParams.GetGameId())
 				}
 			}()
 
-			log.Printf("%s (player %d), connected to game: %s", rcv.Name, rcv.Player, rcv.GetGameId())
+			log.Printf("%s (player %d), connected to game: %s", rcv.GameParams.GetName(), rcv.GameParams.GetPlayer(), rcv.GameParams.GetGameId())
 
-			switch rcv.Player {
+			switch rcv.GameParams.GetPlayer() {
 			case player1:
 				sendCh = g.p1Ch
 				rcvCh = g.p2Ch

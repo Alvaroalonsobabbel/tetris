@@ -39,12 +39,11 @@ func TestNewGame(t *testing.T) {
 			if rcvP1.GameId == "" {
 				t.Errorf("expected game id to be not empty")
 			}
-			p1GameId = rcvP1.GameId
+			p1GameId = rcvP1.GetGameId()
 			if rcvP1.Player != player1 {
 				t.Errorf("expected player to be %v, got %v", player1, rcvP1.Player)
 			}
 			if rcvP1.Started {
-				// t.Log("player1 game started")
 				wg.Done()
 				return
 			}
@@ -52,7 +51,9 @@ func TestNewGame(t *testing.T) {
 	}()
 
 	go func() {
-		time.Sleep(50 * time.Millisecond)
+		for p1GameId == "" { // wait for the p1 to be connected, otherwise all the tests will fail.
+			time.Sleep(20 * time.Millisecond)
+		}
 		p2, err := proto.NewTetrisServiceClient(conn).NewGame(ctx, &proto.NewGameRequest{})
 		if err != nil {
 			t.Errorf("error calling NewGame for P2: %v", err)
@@ -63,13 +64,12 @@ func TestNewGame(t *testing.T) {
 				t.Errorf("error receiving message for P2: %v", err)
 			}
 			if rcvP2.GameId != p1GameId {
-				t.Errorf("expected P2 game id to be equal to P1")
+				t.Errorf("expected P2 game id to be equal to P1, got P2 ID (%v) P1 ID (%v)", rcvP2.GameId, p1GameId)
 			}
 			if rcvP2.Player != player2 {
 				t.Errorf("expected player to be %v, got %v", player2, rcvP2.Player)
 			}
 			if rcvP2.Started {
-				// t.Log("player2 game started")
 				wg.Done()
 				return
 			}
@@ -105,7 +105,7 @@ func TestTetrisServer(t *testing.T) {
 
 	go func() {
 		p1cl := proto.NewTetrisServiceClient(conn)
-		stream, err := p1cl.NewGame(ctx, &proto.NewGameRequest{})
+		stream, err := p1cl.NewGame(ctx, &proto.NewGameRequest{Name: "testPerson1"})
 		if err != nil {
 			t.Errorf("error calling NewGame: %v", err)
 		}
@@ -126,11 +126,7 @@ func TestTetrisServer(t *testing.T) {
 		if err != nil {
 			t.Errorf("error calling GameSession: %v", err)
 		}
-		p1msg := &proto.GameMessage{
-			GameId: gameParams.GameId,
-			Player: gameParams.Player,
-			Name:   "player1",
-		}
+		p1msg := &proto.GameMessage{GameParams: gameParams}
 		for range 4 {
 			if err := outP1.Send(p1msg); err != nil {
 				t.Errorf("error sending message: %v", err)
@@ -140,14 +136,14 @@ func TestTetrisServer(t *testing.T) {
 				t.Errorf("error receiving message for P1: %v", err)
 			}
 			fmt.Println(msg)
-			p1msg.Name += " +1"
+			p1msg.GameParams.Name += " +1"
 		}
 		wg.Done()
 	}()
 
 	go func() {
 		p2cl := proto.NewTetrisServiceClient(conn)
-		stream, err := p2cl.NewGame(ctx, &proto.NewGameRequest{})
+		stream, err := p2cl.NewGame(ctx, &proto.NewGameRequest{Name: "testPerson2"})
 		if err != nil {
 			t.Errorf("error calling NewGame in P2: %v", err)
 		}
@@ -168,11 +164,7 @@ func TestTetrisServer(t *testing.T) {
 		if err != nil {
 			t.Errorf("error calling GameSession in P2: %v", err)
 		}
-		p1msg := &proto.GameMessage{
-			GameId: gameParams.GameId,
-			Player: gameParams.Player,
-			Name:   "player2",
-		}
+		p1msg := &proto.GameMessage{GameParams: gameParams}
 		for range 4 {
 			if err := outP2.Send(p1msg); err != nil {
 				t.Errorf("error sending message in P2: %v", err)
@@ -182,7 +174,7 @@ func TestTetrisServer(t *testing.T) {
 				t.Errorf("error receiving message for P1: %v", err)
 			}
 			fmt.Println(msg)
-			p1msg.Name += " +2"
+			p1msg.GameParams.Name += " +2"
 		}
 		wg.Done()
 	}()
