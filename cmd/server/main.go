@@ -15,12 +15,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-
-	ts := server.New()
-
+	defer lis.Close()
 	s := grpc.NewServer()
-	defer s.GracefulStop()
-	proto.RegisterTetrisServiceServer(s, ts)
+	defer s.Stop()
+	proto.RegisterTetrisServiceServer(s, server.New())
 
 	fmt.Println("starting server...")
 	if err := s.Serve(lis); err != nil {
