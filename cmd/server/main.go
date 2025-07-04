@@ -10,19 +10,19 @@ import (
 	"google.golang.org/grpc"
 )
 
+const port = ":9000"
+
 func main() {
-	lis, err := net.Listen("tcp", ":9000")
+	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-
-	ts := server.New()
-
+	defer lis.Close()
 	s := grpc.NewServer()
-	defer s.GracefulStop()
-	proto.RegisterTetrisServiceServer(s, ts)
+	defer s.Stop()
+	proto.RegisterTetrisServiceServer(s, server.New())
 
-	fmt.Println("starting server...")
+	fmt.Printf("starting server in port %s...\n", port)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
