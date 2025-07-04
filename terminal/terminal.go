@@ -140,7 +140,7 @@ kbListener:
 				}
 				t.client = proto.NewTetrisServiceClient(conn)
 
-				ng, err := t.client.NewGame(context.Background(), &proto.NewGameRequest{})
+				ng, err := t.client.NewGame(context.Background(), &proto.NewGameRequest{Name: "asdasdasd"})
 				if err != nil {
 					t.logger.Error("unable to create gRPC NewGame", slog.String("error", event.Err.Error()))
 				}
@@ -156,9 +156,7 @@ kbListener:
 					t.logger.Error("unable to create gRPC GameSession", slog.String("error", event.Err.Error()))
 				}
 				gs.Send(&proto.GameMessage{
-					GameId: gameParams.GameId,
-					Player: gameParams.Player,
-					Name:   "HERE GOES THE NAME",
+					GameParams: gameParams,
 					// Stack:  stack2Proto(t * tetris.Tetris),
 				})
 
