@@ -7,19 +7,20 @@ service TetrisService {
     rpc GameSession(stream GameMessage) returns (stream GameMessage) {}
 }
 
-message NewGameRequest {}
+message NewGameRequest {
+    string name = 1;
+}
 
 message GameParams {
     string game_id = 1;
     int32 player = 2;
-    bool started = 3;
+    string name = 3;
+    bool started = 4;
 }
 
 message GameMessage {
-    string game_id = 1;
-    int32 player = 2;
-    string name = 3;
-    Tetris stack = 4;
+    GameParams game_params = 1;
+    Tetris stack = 2;
 }
 
 message Tetris {
