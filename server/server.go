@@ -11,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -107,28 +109,45 @@ func (t *tetrisServer) GameSession(stream grpc.BidiStreamingServer[proto.GameMes
 	var (
 		sendCh, rcvCh chan *proto.GameMessage
 		gameCommOK    bool
+		gameID        string
 	)
 
 	for {
 		rcv, err := stream.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
+				log.Println("Client disconnected")
 				return nil
 			}
-			return fmt.Errorf("failed to receive GameSession message: %v", err)
+			st, ok := status.FromError(err)
+			if ok && st.Code() == codes.Canceled {
+				log.Println("Client connection canceled: ", err)
+				return nil
+			}
+			log.Println("failed to receive GameSession message: ", err)
+			return nil
 		}
 		// Game comm setup stage
 		if !gameCommOK {
-			g, ok := t.gameInstance[rcv.GameParams.GetGameId()]
+			gameID = rcv.GameParams.GetGameId()
+
+			t.mu.Lock()
+			g, ok := t.gameInstance[gameID]
 			if !ok {
+				t.mu.Unlock()
 				return fmt.Errorf("game not found")
 			}
+			t.mu.Unlock()
+
 			defer func() {
-				_, ok := t.gameInstance[rcv.GameParams.GetGameId()]
+				t.mu.Lock()
+				_, ok := t.gameInstance[gameID]
 				if ok {
 					g.close()
-					delete(t.gameInstance, rcv.GameParams.GetGameId())
+					delete(t.gameInstance, gameID)
+					log.Printf("Game %s has been deleted ", gameID)
 				}
+				t.mu.Unlock()
 			}()
 
 			log.Printf("%s (player %d), connected to game: %s", rcv.GameParams.GetName(), rcv.GameParams.GetPlayer(), rcv.GameParams.GetGameId())
@@ -164,9 +183,20 @@ func (t *tetrisServer) GameSession(stream grpc.BidiStreamingServer[proto.GameMes
 			gameCommOK = true
 		}
 
-		// send messages to the other player
-		if rcvCh != nil {
-			rcvCh <- rcv
+		t.mu.Lock()
+		_, gameExists := t.gameInstance[gameID]
+		if !gameExists {
+			log.Printf("Game %s not found", gameID)
+			return io.EOF
 		}
+		if gameExists && rcvCh != nil {
+			select {
+			case rcvCh <- rcv:
+			default:
+				log.Printf("Unable to send message to player, channel may be closed")
+				return io.EOF
+			}
+		}
+		t.mu.Unlock()
 	}
 }
