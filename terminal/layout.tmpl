@@ -1,17 +1,41 @@
-{{- $root := . -}}{{- $next := nextPiece . -}}
-+--------------------+{{range $ix, $row := localStack .}}
-|{{range $cell := $row}}{{$cell}}{{end}}|
-{{- if eq $ix 0}}   Terminal Tetris{{- end -}}
-{{- if eq $ix 5}}           Level: {{$root.Local.Level}}{{- end -}}
-{{- if eq $ix 6}}   Lines Cleared: {{$root.Local.LinesClear}}{{- end -}}
-{{- if eq $ix 7}}            Next: {{ index $next 0 }}{{- end -}}
-{{- if eq $ix 8}}                  {{ index $next 1 }}{{- end -}}
-{{- if eq $ix 13}}           Right: →, d{{- end -}}
-{{- if eq $ix 14}}            Left: ←, a{{- end -}}
-{{- if eq $ix 15}}            Down: ↓, s{{- end -}}
-{{- if eq $ix 16}}    Rotate Right: ↑, e{{- end -}}
-{{- if eq $ix 17}}     Rotate Left: q{{- end -}}
-{{- if eq $ix 18}}       Drop Down: space{{- end -}}
-{{- if eq $ix 19}}            Exit: ctrl-c{{- end -}}
+{{- $root := . -}}{{- $next := nextPiece . -}}{{- if $root.Remote -}}{{- $rs := remoteStack . -}}
++--------------------+                              +--------------------+{{range $iy, $row := localStack . }}
+{{if eq $iy 0}}|{{range $cell := $row}}{{$cell}}{{end}}|       Terminal Tetris        |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 1}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 2}}|{{range $cell := $row}}{{$cell}}{{end}}|{{ $vs := vs $root.Name $root.Remote.GameParams.Name }}{{$vs}}|{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 3}}|{{range $cell := $row}}{{$cell}}{{end}}|      {{$root.Local.LinesClear}} :Lines Cleared: {{$root.Remote.Stack.LinesClear}}     |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 4}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 5}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 6}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 7}}|{{range $cell := $row}}{{$cell}}{{end}}|            Next: {{ index $next 0 }}    |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 8}}|{{range $cell := $row}}{{$cell}}{{end}}|                  {{ index $next 1 }}    |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 9}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 10}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 11}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 12}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 13}}|{{range $cell := $row}}{{$cell}}{{end}}|            Right: →, d       |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 14}}|{{range $cell := $row}}{{$cell}}{{end}}|             Left: ←, a       |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 15}}|{{range $cell := $row}}{{$cell}}{{end}}|             Down: ↓, s       |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 16}}|{{range $cell := $row}}{{$cell}}{{end}}|     Rotate Right: ↑, e       |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 17}}|{{range $cell := $row}}{{$cell}}{{end}}|      Rotate Left: q          |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 18}}|{{range $cell := $row}}{{$cell}}{{end}}|        Drop Down: space      |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 19}}|{{range $cell := $row}}{{$cell}}{{end}}|             Exit: ctrl-c     |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{end}}
-+--------------------+
++--------------------+                              +--------------------+
+{{- else -}}
++--------------------+{{range $iy, $row := localStack .}}
+|{{range $cell := $row}}{{$cell}}{{end}}|
+{{- if eq $iy 0}}   Terminal Tetris{{- end -}}
+{{- if eq $iy 5}}           Level: {{$root.Local.Level}}{{- end -}}
+{{- if eq $iy 6}}   Lines Cleared: {{$root.Local.LinesClear}}{{- end -}}
+{{- if eq $iy 7}}            Next: {{ index $next 0 }}{{- end -}}
+{{- if eq $iy 8}}                  {{ index $next 1 }}{{- end -}}
+{{- if eq $iy 13}}           Right: →, d{{- end -}}
+{{- if eq $iy 14}}            Left: ←, a{{- end -}}
+{{- if eq $iy 15}}            Down: ↓, s{{- end -}}
+{{- if eq $iy 16}}    Rotate Right: ↑, e{{- end -}}
+{{- if eq $iy 17}}     Rotate Left: q{{- end -}}
+{{- if eq $iy 18}}       Drop Down: space{{- end -}}
+{{- if eq $iy 19}}            Exit: ctrl-c{{- end -}}
+{{end}}
++--------------------+{{- end -}}

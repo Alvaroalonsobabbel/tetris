@@ -1,12 +1,12 @@
 package terminal
 
 import (
-	"context"
 	_ "embed"
 	"fmt"
 	"io"
 	"log"
 	"log/slog"
+	"os"
 	"strings"
 	"sync/atomic"
 	"tetris/proto"
@@ -14,8 +14,6 @@ import (
 	"text/template"
 
 	"github.com/eiannone/keyboard"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -47,6 +45,7 @@ var colorMap = map[tetris.Shape]string{
 type templateData struct {
 	Local   *tetris.Tetris
 	Remote  *proto.GameMessage
+	Name    string
 	NoGhost bool
 }
 
@@ -57,13 +56,19 @@ type Terminal struct {
 	logger       *slog.Logger
 	keysEventsCh <-chan keyboard.KeyEvent
 	doneCh       chan bool
-	remoteCh     chan *proto.GameMessage
 	lobby        atomic.Bool
 	td           *templateData
-	client       proto.TetrisServiceClient
+	rc           *RemoteClient
 }
 
-func New(w io.Writer, l *slog.Logger, ng bool) *Terminal {
+type Options struct {
+	Writer       io.Writer
+	Logger       *slog.Logger
+	NoGhost      bool
+	RemoteClient *RemoteClient
+}
+
+func New(o *Options) *Terminal {
 	tp, err := loadTemplate()
 	if err != nil {
 		log.Fatalf("unable to load template: %v\n", err)
@@ -73,40 +78,64 @@ func New(w io.Writer, l *slog.Logger, ng bool) *Terminal {
 		log.Fatalf("unable to open keyboard: %v\n", err)
 	}
 	t := tetris.NewGame()
+	var w io.Writer = os.Stdout
+	if o.Writer != nil {
+		w = o.Writer
+	}
 	return &Terminal{
 		writer:       w,
 		tetris:       t,
 		template:     tp,
 		keysEventsCh: kc,
 		doneCh:       make(chan bool),
-		remoteCh:     make(chan *proto.GameMessage),
-		logger:       l,
+		logger:       o.Logger,
 		lobby:        atomic.Bool{},
-		td:           &templateData{NoGhost: ng, Local: t.Read()},
+		td: &templateData{
+			NoGhost: o.NoGhost,
+			Name:    o.RemoteClient.Name,
+			Local:   t.Read(),
+		},
+		rc: o.RemoteClient,
 	}
 }
 
 func (t *Terminal) Start() {
-	go t.listenTetris()
-	go t.listenKB()
 	t.renderGame(t.td)
 	t.renderLobby()
+	go t.listenTetris()
+	go t.listenKB()
 	<-t.doneCh
-	close(t.remoteCh)
 	close(t.doneCh)
 }
 
 func (t *Terminal) listenTetris() {
 	for {
-		select {
-		case <-t.tetris.UpdateCh:
-			t.td.Local = t.tetris.Read()
-			t.renderGame(t.td)
-		case r := <-t.remoteCh:
-			t.td.Remote = r
-			t.renderGame(t.td)
-		case <-t.tetris.GameOverCh:
-			t.renderLobby()
+		if t.rc.remoteRcvCh != nil {
+			select {
+			case <-t.tetris.UpdateCh:
+				t.td.Local = t.tetris.Read()
+				t.rc.remoteSndCh <- t.td.Local
+				t.renderGame(t.td)
+			case r := <-t.rc.remoteRcvCh:
+				t.td.Remote = r
+				// update tetris timer 
+				// check if r contains game over, finish the game here
+				// stop current local tetris
+				t.renderGame(t.td)
+				// another channel for cancelations
+			case <-t.tetris.GameOverCh:
+				// if game over locally, send game message with game over
+				t.renderLobby()
+			}
+		} else {
+			select {
+			case <-t.tetris.UpdateCh:
+				t.td.Local = t.tetris.Read()
+				t.renderGame(t.td)
+			case <-t.tetris.GameOverCh:
+				t.renderLobby()
+				fmt.Fprint(t.writer, "\033[12;9H|             Game Over :)             |")
+			}
 		}
 	}
 }
@@ -129,41 +158,22 @@ kbListener:
 		if t.lobby.Load() {
 			switch event.Rune {
 			case 'p':
-				t.lobby.Store(false)
-				// clear the screen after the lobby
-				fmt.Fprint(t.writer, "\033[2J\033[H")
 				t.tetris.Start()
 			case 'o':
-				conn, err := grpc.NewClient("127.0.0.1:9000", grpc.WithTransportCredentials(insecure.NewCredentials()))
-				if err != nil {
-					t.logger.Error("unable to create gRPC client", slog.String("error", event.Err.Error()))
+				fmt.Fprint(t.writer, "\033[13;9H|       connecting to server...        |")
+				if !t.rc.start() {
+					t.renderLobby()
+					fmt.Fprint(t.writer, "\033[12;9H|       something went wrong :(        |")
+					continue
 				}
-				t.client = proto.NewTetrisServiceClient(conn)
-
-				ng, err := t.client.NewGame(context.Background(), &proto.NewGameRequest{Name: "asdasdasd"})
-				if err != nil {
-					t.logger.Error("unable to create gRPC NewGame", slog.String("error", event.Err.Error()))
-				}
-				gameParams := &proto.GameParams{}
-				for gameParams.Started {
-					gameParams, err = ng.Recv()
-					if err != nil {
-						t.logger.Error("unable to receive gRPC from NewGame", slog.String("error", event.Err.Error()))
-					}
-				}
-				gs, err := t.client.GameSession(context.Background())
-				if err != nil {
-					t.logger.Error("unable to create gRPC GameSession", slog.String("error", event.Err.Error()))
-				}
-				gs.Send(&proto.GameMessage{
-					GameParams: gameParams,
-					// Stack:  stack2Proto(t * tetris.Tetris),
-				})
-
-				// t.client.NewGame(ctx context.Context, in *proto.NewGameRequest, opts ...grpc.CallOption)
+				t.td.Remote = t.rc.gm
+				t.tetris.Start()
 			case 'q':
 				break kbListener
 			}
+			t.lobby.Store(false)
+			// clear the screen after the lobby
+			fmt.Fprint(t.writer, "\033[2J\033[H")
 		} else {
 			switch {
 			case event.Key == keyboard.KeyArrowDown || event.Rune == 's':
@@ -189,7 +199,7 @@ func (t *Terminal) renderLobby() {
 	fmt.Fprint(t.writer, "\033[10;9H+--------------------------------------+")
 	fmt.Fprint(t.writer, "\033[11;9H|      Welcome to Terminal Tetris      |")
 	fmt.Fprint(t.writer, "\033[12;9H|                                      |")
-	fmt.Fprint(t.writer, "\033[13;9H|      (p)lay              (q)uit      |")
+	fmt.Fprint(t.writer, "\033[13;9H|      (p)lay   (o)nline   (q)uit      |")
 	fmt.Fprint(t.writer, "\033[14;9H+--------------------------------------+")
 }
 
@@ -205,6 +215,7 @@ func loadTemplate() (*template.Template, error) {
 		"localStack":  localStack,
 		"remoteStack": remoteStack,
 		"nextPiece":   nextPiece,
+		"vs":          vs,
 	}
 
 	// we use the console raw so new lines don't automatically transform into carriage return
@@ -280,6 +291,26 @@ func nextPiece(t *templateData) []string {
 		rendered = append(rendered, strings.Join(row, ""))
 	}
 	return rendered
+}
+
+func vs(lName, rName string) string {
+	maxL := 9
+	l := len(lName)
+	switch {
+	case l > maxL:
+		lName = lName[:maxL]
+	case l < maxL:
+		lName = strings.Repeat(" ", maxL-len(lName)) + lName
+	}
+
+	r := len(rName)
+	switch {
+	case r > maxL:
+		rName = rName[:maxL]
+	case r < maxL:
+		rName += strings.Repeat(" ", maxL-len(rName))
+	}
+	return fmt.Sprintf(" %s <- vs -> %s ", lName, rName)
 }
 
 func stack2Proto(t *tetris.Tetris) *proto.Tetris {
