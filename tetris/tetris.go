@@ -13,12 +13,10 @@
 package tetris
 
 import (
-	"math"
 	"math/rand"
 
 	"slices"
 	"sync"
-	"time"
 )
 
 type Tetris struct {
@@ -55,6 +53,7 @@ func NewTestTetris(shape Shape) *Tetris {
 		NexTetromino: shapeMap[shape](),
 		Stack:        emptyStack(),
 		Level:        1,
+		bag:          newBag(),
 	}
 	t.Tetromino.GhostY = t.Tetromino.Y + t.dropDownDelta()
 	return t
@@ -305,21 +304,4 @@ func emptyStack() [][]Shape {
 		e[i] = make([]Shape, 10)
 	}
 	return e
-}
-
-func setTime(level int) time.Duration {
-	// setTime() sets the duration for the ticker that will progress the
-	// tetromino further down the stack. Based on https://tetris.wiki/Marathon
-	//
-	// Time = (0.8-((Level-1)*0.007))^(Level-1)
-
-	switch {
-	case level < 1:
-		level = 1
-	case level > 20:
-		level = 20
-	}
-	seconds := math.Pow(0.8-float64(level-1)*0.007, float64(level-1))
-
-	return time.Duration(seconds * float64(time.Second))
 }

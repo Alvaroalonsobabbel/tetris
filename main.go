@@ -44,14 +44,12 @@ func main() {
 	// }()
 	fmt.Print(hideCursor)
 	defer fmt.Print(showCursor)
+	rc := terminal.NewRemoteClient(name, address, l)
+	defer rc.Close()
 	terminal.New(&terminal.Options{
-		Logger:  l,
-		NoGhost: noGhost,
-		RemoteClient: &terminal.RemoteClient{
-			Name:   name,
-			Addr:   address,
-			Logger: l,
-		},
+		Logger:       l,
+		NoGhost:      noGhost,
+		RemoteClient: rc,
 	}).Start()
 }
 

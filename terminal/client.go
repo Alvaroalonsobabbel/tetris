@@ -5,8 +5,8 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"sync"
 	"tetris/proto"
-	"tetris/tetris"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -20,8 +20,20 @@ type RemoteClient struct {
 	conn        *grpc.ClientConn
 	tsc         proto.TetrisServiceClient
 	remoteRcvCh chan *proto.GameMessage
-	remoteSndCh chan *tetris.Tetris
+	remoteSndCh chan *templateData
 	gm          *proto.GameMessage
+	mu          sync.Mutex
+}
+
+func NewRemoteClient(name, addr string, l *slog.Logger) *RemoteClient {
+	return &RemoteClient{
+		Name:   name,
+		Addr:   addr,
+		Logger: l,
+
+		remoteRcvCh: make(chan *proto.GameMessage),
+		remoteSndCh: make(chan *templateData),
+	}
 }
 
 func (r *RemoteClient) start() bool {
@@ -55,24 +67,21 @@ func (r *RemoteClient) start() bool {
 	}
 
 	go func(r *RemoteClient) {
-		r.remoteSndCh = make(chan *tetris.Tetris)
 		for {
-			select {
-			case msg, ok := <-r.remoteSndCh:
-				if !ok {
-					return
-				}
-				r.gm.Stack = stack2Proto(msg)
-				if err := gs.Send(r.gm); err != nil {
-					r.Logger.Error("unable to send gRPC to GameSession", slog.String("error", err.Error()))
-				}
-			default:
+			msg, ok := <-r.remoteSndCh
+			if !ok {
+				return
+			}
+			msg.mu.Lock()
+			r.gm.Stack = stack2Proto(msg.Local)
+			msg.mu.Unlock()
+			if err := gs.Send(r.gm); err != nil {
+				r.Logger.Error("unable to send gRPC to GameSession", slog.String("error", err.Error()))
 			}
 		}
 	}(r)
 
 	go func(r *RemoteClient) {
-		r.remoteRcvCh = make(chan *proto.GameMessage)
 		for {
 			rcv, err := gs.Recv()
 			if err != nil {
@@ -89,10 +98,10 @@ func (r *RemoteClient) start() bool {
 	return true
 }
 
-func (r *RemoteClient) close() {
+func (r *RemoteClient) Close() {
 	if r.conn != nil {
 		r.conn.Close()
 	}
-	close(r.remoteRcvCh)
-	close(r.remoteSndCh)
+	// close(r.remoteRcvCh)
+	// close(r.remoteSndCh)
 }

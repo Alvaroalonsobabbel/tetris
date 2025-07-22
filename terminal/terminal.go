@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"tetris/proto"
 	"tetris/tetris"
@@ -47,6 +48,8 @@ type templateData struct {
 	Remote  *proto.GameMessage
 	Name    string
 	NoGhost bool
+
+	mu sync.Mutex
 }
 
 type Terminal struct {
@@ -102,7 +105,6 @@ func New(o *Options) *Terminal {
 func (t *Terminal) Start() {
 	t.renderGame(t.td)
 	t.renderLobby()
-	go t.listenTetris()
 	go t.listenKB()
 	<-t.doneCh
 	close(t.doneCh)
@@ -110,32 +112,44 @@ func (t *Terminal) Start() {
 
 func (t *Terminal) listenTetris() {
 	for {
-		if t.rc.remoteRcvCh != nil {
-			select {
-			case <-t.tetris.UpdateCh:
-				t.td.Local = t.tetris.Read()
-				t.rc.remoteSndCh <- t.td.Local
-				t.renderGame(t.td)
-			case r := <-t.rc.remoteRcvCh:
-				t.td.Remote = r
-				// update tetris timer 
-				// check if r contains game over, finish the game here
-				// stop current local tetris
-				t.renderGame(t.td)
-				// another channel for cancelations
-			case <-t.tetris.GameOverCh:
-				// if game over locally, send game message with game over
-				t.renderLobby()
-			}
-		} else {
-			select {
-			case <-t.tetris.UpdateCh:
-				t.td.Local = t.tetris.Read()
-				t.renderGame(t.td)
-			case <-t.tetris.GameOverCh:
-				t.renderLobby()
-				fmt.Fprint(t.writer, "\033[12;9H|             Game Over :)             |")
-			}
+		select {
+		case <-t.tetris.UpdateCh:
+			t.td.Local = t.tetris.Read()
+			t.renderGame(t.td)
+		case <-t.tetris.GameOverCh:
+			t.renderLobby()
+			fmt.Fprint(t.writer, "\033[11;9H|             Game Over :)             |")
+			return
+		}
+	}
+}
+
+func (t *Terminal) listenOnlineTetris() {
+	for {
+		select {
+		case <-t.tetris.UpdateCh:
+			t.td.mu.Lock()
+			t.td.Local = t.tetris.Read()
+			t.td.mu.Unlock()
+			t.rc.remoteSndCh <- t.td
+
+			t.renderGame(t.td)
+		case r := <-t.rc.remoteRcvCh:
+			t.td.mu.Lock()
+			t.td.Remote = r
+			t.td.mu.Unlock()
+			// t.tetris.UpdateTimer(r.Stack.GetLinesClear())
+			// think of a new timer
+			// check if r contains game over, finish the game here
+			// fmt.Fprint(t.writer, "\033[11;9H|              You Lose :()             |")
+			// stop current local tetris
+			t.renderGame(t.td)
+			// another channel for cancelations
+		case <-t.tetris.GameOverCh:
+			t.tetris.Stop()
+			t.renderLobby()
+			fmt.Fprint(t.writer, "\033[11;9H|              You Lose :()             |")
+			return
 		}
 	}
 }
@@ -158,6 +172,7 @@ kbListener:
 		if t.lobby.Load() {
 			switch event.Rune {
 			case 'p':
+				go t.listenTetris()
 				t.tetris.Start()
 			case 'o':
 				fmt.Fprint(t.writer, "\033[13;9H|       connecting to server...        |")
@@ -167,9 +182,12 @@ kbListener:
 					continue
 				}
 				t.td.Remote = t.rc.gm
+				go t.listenOnlineTetris()
 				t.tetris.Start()
 			case 'q':
 				break kbListener
+			default:
+				continue
 			}
 			t.lobby.Store(false)
 			// clear the screen after the lobby
@@ -203,9 +221,11 @@ func (t *Terminal) renderLobby() {
 	fmt.Fprint(t.writer, "\033[14;9H+--------------------------------------+")
 }
 
-func (t *Terminal) renderGame(update *templateData) {
+func (t *Terminal) renderGame(td *templateData) {
 	fmt.Fprint(t.writer, resetPos)
-	if err := t.template.Execute(t.writer, update); err != nil {
+	td.mu.Lock()
+	defer td.mu.Unlock()
+	if err := t.template.Execute(t.writer, td); err != nil {
 		t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
 	}
 }
