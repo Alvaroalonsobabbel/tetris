@@ -1,202 +1,146 @@
 package server
 
 import (
-	"errors"
-	"fmt"
-	"io"
 	"log"
 	"sync"
 	"tetris/proto"
 	"time"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 const (
-	player1 int32 = 1
-	player2 int32 = 2
+	player1 = 1
+	player2 = 2
+
+	// Default timeout for waiting for opponent.
+	defaultTimeOut = 30 * time.Second
 )
 
 type game struct {
-	p1Ch, p2Ch     chan *proto.GameMessage
-	p1conn, p2conn bool
+	p1Ch, p2Ch chan *proto.GameMessage
+	p1, p2     bool
+	mu         sync.Mutex
 }
 
 func newGame() *game {
 	return &game{
-		p1Ch: make(chan *proto.GameMessage, 10),
-		p2Ch: make(chan *proto.GameMessage, 10),
+		p1Ch: make(chan *proto.GameMessage),
+		p2Ch: make(chan *proto.GameMessage),
 	}
 }
 
 func (g *game) isStart() bool {
-	return g.p1conn && g.p2conn
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.p1 && g.p2
+}
+
+func (g *game) ready(p int) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	switch p {
+	case player1:
+		g.p1 = true
+	case player2:
+		g.p2 = true
+	}
 }
 
 func (g *game) close() {
-	close(g.p1Ch)
-	close(g.p2Ch)
+	if g != nil {
+		close(g.p1Ch)
+		close(g.p2Ch)
+		g = nil
+	}
 }
 
 type tetrisServer struct {
 	proto.UnimplementedTetrisServiceServer
-	gameInstance map[string]*game
-	waitListID   string
-	mu           sync.Mutex
+	waitListID  *game
+	waitTimeout time.Duration
+	mu          sync.Mutex
 }
 
 func New() proto.TetrisServiceServer {
-	return &tetrisServer{gameInstance: make(map[string]*game)}
+	return &tetrisServer{waitTimeout: defaultTimeOut}
 }
 
-func (t *tetrisServer) NewGame(gr *proto.NewGameRequest, stream proto.TetrisService_NewGameServer) error {
-	gameParams := &proto.GameParams{
-		Name:   gr.GetName(),
-		Player: player1,
-	}
+func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMessage, proto.GameMessage]) error {
+	var gameInstance *game
+	var player int
+	var opponentCh chan *proto.GameMessage
+	defer gameInstance.close()
 
-	t.mu.Lock()
-	switch t.waitListID {
-	case "":
-		gameParams.GameId = uuid.New().String()
-		t.gameInstance[gameParams.GameId] = newGame()
-		log.Printf("New game created: %s", gameParams.GetGameId())
-		t.gameInstance[gameParams.GameId].p1conn = true
-		log.Printf("%s (player %d) connected to game: %s", gameParams.GetName(), gameParams.GetPlayer(), gameParams.GetGameId())
-		t.waitListID = gameParams.GetGameId()
-		if err := stream.Send(gameParams); err != nil {
-			return fmt.Errorf("failed to send RequestGameResponse message: %v", err)
-		}
-	default:
-		gameParams.GameId = t.waitListID
-		t.waitListID = ""
-		gameParams.Player = player2
-		t.gameInstance[gameParams.GameId].p2conn = true
-		log.Printf("%s (player %d) connected to game: %s", gameParams.GetName(), gameParams.GetPlayer(), gameParams.GetGameId())
-		if err := stream.Send(gameParams); err != nil {
-			return fmt.Errorf("failed to send RequestGameResponse message: %v", err)
-		}
-	}
-	t.mu.Unlock()
-
-	ctx := stream.Context()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
+	// New game setup
+	if gameInstance == nil {
+		t.mu.Lock()
+		switch t.waitListID {
+		case nil:
+			player = player1
+			gameInstance = newGame()
+			gameInstance.ready(player1)
+			t.waitListID = gameInstance
+			opponentCh = gameInstance.p2Ch
 		default:
+			player = player2
+			gameInstance = t.waitListID
+			gameInstance.ready(player2)
+			t.waitListID = nil
+			opponentCh = gameInstance.p1Ch
 		}
-
-		t.mu.Lock()
-		gameStarted := t.gameInstance[gameParams.GameId].isStart()
 		t.mu.Unlock()
-
-		if gameStarted {
-			gameParams.Started = true
-			if err := stream.Send(gameParams); err != nil {
-				return fmt.Errorf("failed to send RequestGameResponse message: %v", err)
-			}
-			return nil
-		}
-		time.Sleep(50 * time.Millisecond)
 	}
-}
 
-func (t *tetrisServer) GameSession(stream grpc.BidiStreamingServer[proto.GameMessage, proto.GameMessage]) error {
-	var (
-		sendCh, rcvCh chan *proto.GameMessage
-		gameCommOK    bool
-		gameID        string
-	)
+	gm, err := stream.Recv()
+	if err != nil {
+		return status.Errorf(codes.Canceled, "error receiving first stream message: %v", err)
+	}
+	log.Printf("%s (player %d) is waiting to start game\n", gm.GetName(), player)
 
-	for {
-		rcv, err := stream.Recv()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				log.Println("Client disconnected")
-				return nil
-			}
-			st, ok := status.FromError(err)
-			if ok && st.Code() == codes.Canceled {
-				log.Println("Client connection canceled: ", err)
-				return nil
-			}
-			log.Println("failed to receive GameSession message: ", err)
-			return nil
-		}
-		// Game comm setup stage
-		if !gameCommOK {
-			gameID = rcv.GameParams.GetGameId()
-
-			t.mu.Lock()
-			g, ok := t.gameInstance[gameID]
-			if !ok {
-				t.mu.Unlock()
-				return fmt.Errorf("game not found")
-			}
-			t.mu.Unlock()
-
-			defer func() {
-				t.mu.Lock()
-				_, ok := t.gameInstance[gameID]
-				if ok {
-					g.close()
-					delete(t.gameInstance, gameID)
-					log.Printf("Game %s has been deleted ", gameID)
-				}
-				t.mu.Unlock()
-			}()
-
-			log.Printf("%s (player %d), connected to game: %s", rcv.GameParams.GetName(), rcv.GameParams.GetPlayer(), rcv.GameParams.GetGameId())
-
-			switch rcv.GameParams.GetPlayer() {
-			case player1:
-				sendCh = g.p1Ch
-				rcvCh = g.p2Ch
-			case player2:
-				sendCh = g.p2Ch
-				rcvCh = g.p1Ch
-			default:
-				return errors.New("invalid player ID")
-			}
-
-			// receive messages from the other player
-			go func() {
-				for {
-					select {
-					case msg, ok := <-sendCh:
-						if !ok {
-							return
-						}
-						if err := stream.Send(msg); err != nil {
-							log.Printf("failed to send message: %v", err)
-							return
-						}
-					case <-stream.Context().Done():
-						return
-					}
-				}
-			}()
-			gameCommOK = true
-		}
-
-		t.mu.Lock()
-		_, gameExists := t.gameInstance[gameID]
-		if !gameExists {
-			log.Printf("Game %s not found", gameID)
-			return io.EOF
-		}
-		if gameExists && rcvCh != nil {
+	// Only player 1 waits for the opponent.
+	if player == player1 {
+		timeOut := time.After(t.waitTimeout)
+		for !gameInstance.isStart() {
 			select {
-			case rcvCh <- rcv:
+			case <-timeOut:
+				return status.Error(codes.DeadlineExceeded, "timeout waiting for opponent")
 			default:
-				log.Printf("Unable to send message to player, channel may be closed")
-				return io.EOF
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
-		t.mu.Unlock()
 	}
+	if err := stream.Send(&proto.GameMessage{IsStarted: true}); err != nil {
+		return status.Errorf(codes.Canceled, "failed to send gameMessage isStarted for player%d: %v", player, err)
+	}
+
+	// Receive msg from stream and send to opponent's channel.
+	go func() {
+		ch := gameInstance.p1Ch
+		if player == player2 {
+			ch = gameInstance.p2Ch
+		}
+		for {
+			gm, err := stream.Recv()
+			if err != nil {
+				st, ok := status.FromError(err)
+				if ok && st.Code() == codes.Canceled {
+					return
+				}
+				log.Printf("error receiving stream message in player%d: %v", player, err)
+				return
+			}
+			ch <- gm
+		}
+	}()
+
+	// Receive from opponent's channel and send to stream.
+	for om := range opponentCh {
+		if err := stream.Send(om); err != nil {
+			return status.Errorf(codes.Canceled, "failed to send opponent message to P%d: %v", player, err)
+		}
+	}
+	return nil
 }

@@ -21,129 +21,20 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type NewGameRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *NewGameRequest) Reset() {
-	*x = NewGameRequest{}
-	mi := &file_proto_server_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NewGameRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NewGameRequest) ProtoMessage() {}
-
-func (x *NewGameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NewGameRequest.ProtoReflect.Descriptor instead.
-func (*NewGameRequest) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *NewGameRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-type GameParams struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
-	Player        int32                  `protobuf:"varint,2,opt,name=player,proto3" json:"player,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Started       bool                   `protobuf:"varint,4,opt,name=started,proto3" json:"started,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GameParams) Reset() {
-	*x = GameParams{}
-	mi := &file_proto_server_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GameParams) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GameParams) ProtoMessage() {}
-
-func (x *GameParams) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GameParams.ProtoReflect.Descriptor instead.
-func (*GameParams) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GameParams) GetGameId() string {
-	if x != nil {
-		return x.GameId
-	}
-	return ""
-}
-
-func (x *GameParams) GetPlayer() int32 {
-	if x != nil {
-		return x.Player
-	}
-	return 0
-}
-
-func (x *GameParams) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *GameParams) GetStarted() bool {
-	if x != nil {
-		return x.Started
-	}
-	return false
-}
-
 type GameMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GameParams    *GameParams            `protobuf:"bytes,1,opt,name=game_params,json=gameParams,proto3" json:"game_params,omitempty"`
-	Stack         *Tetris                `protobuf:"bytes,2,opt,name=stack,proto3" json:"stack,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	IsStarted     bool                   `protobuf:"varint,2,opt,name=is_started,json=isStarted,proto3" json:"is_started,omitempty"`
+	IsGameOver    bool                   `protobuf:"varint,3,opt,name=is_game_over,json=isGameOver,proto3" json:"is_game_over,omitempty"`
+	LinesClear    int32                  `protobuf:"varint,4,opt,name=lines_clear,json=linesClear,proto3" json:"lines_clear,omitempty"`
+	Stack         *Stack                 `protobuf:"bytes,5,opt,name=stack,proto3" json:"stack,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GameMessage) Reset() {
 	*x = GameMessage{}
-	mi := &file_proto_server_proto_msgTypes[2]
+	mi := &file_proto_server_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -155,7 +46,7 @@ func (x *GameMessage) String() string {
 func (*GameMessage) ProtoMessage() {}
 
 func (x *GameMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[2]
+	mi := &file_proto_server_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -168,73 +59,42 @@ func (x *GameMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GameMessage.ProtoReflect.Descriptor instead.
 func (*GameMessage) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{2}
+	return file_proto_server_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GameMessage) GetGameParams() *GameParams {
+func (x *GameMessage) GetName() string {
 	if x != nil {
-		return x.GameParams
+		return x.Name
 	}
-	return nil
+	return ""
 }
 
-func (x *GameMessage) GetStack() *Tetris {
+func (x *GameMessage) GetIsStarted() bool {
 	if x != nil {
-		return x.Stack
+		return x.IsStarted
 	}
-	return nil
+	return false
 }
 
-type Tetris struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Stack         *Stack                 `protobuf:"bytes,1,opt,name=stack,proto3" json:"stack,omitempty"`
-	LinesClear    int32                  `protobuf:"varint,2,opt,name=lines_clear,json=linesClear,proto3" json:"lines_clear,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Tetris) Reset() {
-	*x = Tetris{}
-	mi := &file_proto_server_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Tetris) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Tetris) ProtoMessage() {}
-
-func (x *Tetris) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[3]
+func (x *GameMessage) GetIsGameOver() bool {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.IsGameOver
 	}
-	return mi.MessageOf(x)
+	return false
 }
 
-// Deprecated: Use Tetris.ProtoReflect.Descriptor instead.
-func (*Tetris) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Tetris) GetStack() *Stack {
-	if x != nil {
-		return x.Stack
-	}
-	return nil
-}
-
-func (x *Tetris) GetLinesClear() int32 {
+func (x *GameMessage) GetLinesClear() int32 {
 	if x != nil {
 		return x.LinesClear
 	}
 	return 0
+}
+
+func (x *GameMessage) GetStack() *Stack {
+	if x != nil {
+		return x.Stack
+	}
+	return nil
 }
 
 type Stack struct {
@@ -246,7 +106,7 @@ type Stack struct {
 
 func (x *Stack) Reset() {
 	*x = Stack{}
-	mi := &file_proto_server_proto_msgTypes[4]
+	mi := &file_proto_server_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +118,7 @@ func (x *Stack) String() string {
 func (*Stack) ProtoMessage() {}
 
 func (x *Stack) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[4]
+	mi := &file_proto_server_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +131,7 @@ func (x *Stack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Stack.ProtoReflect.Descriptor instead.
 func (*Stack) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{4}
+	return file_proto_server_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Stack) GetRows() []*Row {
@@ -290,7 +150,7 @@ type Row struct {
 
 func (x *Row) Reset() {
 	*x = Row{}
-	mi := &file_proto_server_proto_msgTypes[5]
+	mi := &file_proto_server_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -302,7 +162,7 @@ func (x *Row) String() string {
 func (*Row) ProtoMessage() {}
 
 func (x *Row) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_server_proto_msgTypes[5]
+	mi := &file_proto_server_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -315,7 +175,7 @@ func (x *Row) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Row.ProtoReflect.Descriptor instead.
 func (*Row) Descriptor() ([]byte, []int) {
-	return file_proto_server_proto_rawDescGZIP(), []int{5}
+	return file_proto_server_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Row) GetCells() []string {
@@ -329,30 +189,23 @@ var File_proto_server_proto protoreflect.FileDescriptor
 
 const file_proto_server_proto_rawDesc = "" +
 	"\n" +
-	"\x12proto/server.proto\"$\n" +
-	"\x0eNewGameRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"k\n" +
+	"\x12proto/server.proto\"\xa1\x01\n" +
+	"\vGameMessage\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
-	"GameParams\x12\x17\n" +
-	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x16\n" +
-	"\x06player\x18\x02 \x01(\x05R\x06player\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x18\n" +
-	"\astarted\x18\x04 \x01(\bR\astarted\"Z\n" +
-	"\vGameMessage\x12,\n" +
-	"\vgame_params\x18\x01 \x01(\v2\v.GameParamsR\n" +
-	"gameParams\x12\x1d\n" +
-	"\x05stack\x18\x02 \x01(\v2\a.TetrisR\x05stack\"G\n" +
-	"\x06Tetris\x12\x1c\n" +
-	"\x05stack\x18\x01 \x01(\v2\x06.StackR\x05stack\x12\x1f\n" +
-	"\vlines_clear\x18\x02 \x01(\x05R\n" +
-	"linesClear\"!\n" +
+	"is_started\x18\x02 \x01(\bR\tisStarted\x12 \n" +
+	"\fis_game_over\x18\x03 \x01(\bR\n" +
+	"isGameOver\x12\x1f\n" +
+	"\vlines_clear\x18\x04 \x01(\x05R\n" +
+	"linesClear\x12\x1c\n" +
+	"\x05stack\x18\x05 \x01(\v2\x06.StackR\x05stack\"!\n" +
 	"\x05Stack\x12\x18\n" +
 	"\x04rows\x18\x01 \x03(\v2\x04.RowR\x04rows\"\x1b\n" +
 	"\x03Row\x12\x14\n" +
-	"\x05cells\x18\x01 \x03(\tR\x05cells2m\n" +
-	"\rTetrisService\x12+\n" +
-	"\aNewGame\x12\x0f.NewGameRequest\x1a\v.GameParams\"\x000\x01\x12/\n" +
-	"\vGameSession\x12\f.GameMessage\x1a\f.GameMessage\"\x00(\x010\x01B%Z#github.com/Alvaroalonsobabbel/protob\x06proto3"
+	"\x05cells\x18\x01 \x03(\tR\x05cells2?\n" +
+	"\rTetrisService\x12.\n" +
+	"\n" +
+	"PlayTetris\x12\f.GameMessage\x1a\f.GameMessage\"\x00(\x010\x01B%Z#github.com/Alvaroalonsobabbel/protob\x06proto3"
 
 var (
 	file_proto_server_proto_rawDescOnce sync.Once
@@ -366,29 +219,22 @@ func file_proto_server_proto_rawDescGZIP() []byte {
 	return file_proto_server_proto_rawDescData
 }
 
-var file_proto_server_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_proto_server_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_proto_server_proto_goTypes = []any{
-	(*NewGameRequest)(nil), // 0: NewGameRequest
-	(*GameParams)(nil),     // 1: GameParams
-	(*GameMessage)(nil),    // 2: GameMessage
-	(*Tetris)(nil),         // 3: Tetris
-	(*Stack)(nil),          // 4: Stack
-	(*Row)(nil),            // 5: Row
+	(*GameMessage)(nil), // 0: GameMessage
+	(*Stack)(nil),       // 1: Stack
+	(*Row)(nil),         // 2: Row
 }
 var file_proto_server_proto_depIdxs = []int32{
-	1, // 0: GameMessage.game_params:type_name -> GameParams
-	3, // 1: GameMessage.stack:type_name -> Tetris
-	4, // 2: Tetris.stack:type_name -> Stack
-	5, // 3: Stack.rows:type_name -> Row
-	0, // 4: TetrisService.NewGame:input_type -> NewGameRequest
-	2, // 5: TetrisService.GameSession:input_type -> GameMessage
-	1, // 6: TetrisService.NewGame:output_type -> GameParams
-	2, // 7: TetrisService.GameSession:output_type -> GameMessage
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	1, // 0: GameMessage.stack:type_name -> Stack
+	2, // 1: Stack.rows:type_name -> Row
+	0, // 2: TetrisService.PlayTetris:input_type -> GameMessage
+	0, // 3: TetrisService.PlayTetris:output_type -> GameMessage
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proto_server_proto_init() }
@@ -402,7 +248,7 @@ func file_proto_server_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_server_proto_rawDesc), len(file_proto_server_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
