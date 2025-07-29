@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"sync"
 	"testing"
@@ -17,194 +16,117 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func TestNewGame(t *testing.T) {
-	ctx := context.Background()
-	conn, closer := testServer(ctx)
-	defer closer()
+func TestPlayTetris(t *testing.T) {
+	t.Run("normal game flow with multiple players", func(t *testing.T) {
+		lis, closer := testServer(t)
+		defer closer()
 
-	var p1GameId string
-	var wg sync.WaitGroup
-	wg.Add(2)
+		var wg sync.WaitGroup
+		for i := range 20 {
+			wg.Add(1)
+			go func() { testPlayer(t, i+1, lis); wg.Done() }()
+		}
+		wg.Wait()
+	})
 
-	go func() {
-		p1, err := proto.NewTetrisServiceClient(conn).NewGame(ctx, &proto.NewGameRequest{})
-		if err != nil {
-			t.Errorf("error calling NewGame for P1: %v", err)
-		}
-		for {
-			rcvP1, err := p1.Recv()
-			if err != nil {
-				t.Errorf("error receiving message for P1: %v", err)
-			}
-			if rcvP1.GameId == "" {
-				t.Errorf("expected game id to be not empty")
-			}
-			p1GameId = rcvP1.GetGameId()
-			if rcvP1.Player != player1 {
-				t.Errorf("expected player to be %v, got %v", player1, rcvP1.Player)
-			}
-			if rcvP1.Started {
-				wg.Done()
-				return
-			}
-		}
-	}()
-
-	go func() {
-		for p1GameId == "" { // wait for the p1 to be connected, otherwise all the tests will fail.
-			time.Sleep(20 * time.Millisecond)
-		}
-		p2, err := proto.NewTetrisServiceClient(conn).NewGame(ctx, &proto.NewGameRequest{})
-		if err != nil {
-			t.Errorf("error calling NewGame for P2: %v", err)
-		}
-		for {
-			rcvP2, err := p2.Recv()
-			if err != nil {
-				t.Errorf("error receiving message for P2: %v", err)
-			}
-			if rcvP2.GameId != p1GameId {
-				t.Errorf("expected P2 game id to be equal to P1, got P2 ID (%v) P1 ID (%v)", rcvP2.GameId, p1GameId)
-			}
-			if rcvP2.Player != player2 {
-				t.Errorf("expected player to be %v, got %v", player2, rcvP2.Player)
-			}
-			if rcvP2.Started {
-				wg.Done()
-				return
-			}
-		}
-	}()
-	wg.Wait()
-
-	t.Run("NewGame context timeout", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	t.Run("time out waiting for opponent", func(t *testing.T) {
+		server := &tetrisServer{waitTimeout: 150 * time.Millisecond}
+		lis, closer := testCustomServer(t, server)
+		defer closer()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		p, err := proto.NewTetrisServiceClient(conn).NewGame(ctx, &proto.NewGameRequest{})
+
+		conn := testClient(t, lis)
+		game, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
 		if err != nil {
 			t.Errorf("error calling NewGame: %v", err)
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		if err := game.Send(&proto.GameMessage{Name: "test"}); err != nil {
+			t.Errorf("error sending: %v", err)
+			return
+		}
 
 		for err == nil {
-			_, err = p.Recv()
+			_, err = game.Recv()
 		}
-		if status.Code(err) != codes.DeadlineExceeded {
-			t.Errorf("expected %v, got %v", codes.DeadlineExceeded, status.Code(err))
+		st, ok := status.FromError(err)
+		if !ok || st.Code() != codes.DeadlineExceeded || st.Message() != "timeout waiting for opponent" {
+			t.Errorf("expected DeadlineExceeded with message 'timeout waiting for opponent', got %v", err)
 		}
 	})
 }
 
-func TestTetrisServer(t *testing.T) {
-	ctx := context.Background()
-	conn, closer := testServer(ctx)
-	defer closer()
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-
-	go func() {
-		p1cl := proto.NewTetrisServiceClient(conn)
-		stream, err := p1cl.NewGame(ctx, &proto.NewGameRequest{Name: "testPerson1"})
-		if err != nil {
-			t.Errorf("error calling NewGame: %v", err)
-		}
-		var gameParams *proto.GameParams
-		for {
-			rcv, err := stream.Recv()
-			if err != nil {
-				t.Errorf("error receiving message for P1: %v", err)
-			}
-			if rcv.Started {
-				gameParams = rcv
-				break
-			}
-			time.Sleep(50 * time.Millisecond)
-		}
-
-		outP1, err := p1cl.GameSession(ctx)
-		if err != nil {
-			t.Errorf("error calling GameSession: %v", err)
-		}
-		p1msg := &proto.GameMessage{GameParams: gameParams}
-		for range 4 {
-			if err := outP1.Send(p1msg); err != nil {
-				t.Errorf("error sending message: %v", err)
-			}
-			msg, err := outP1.Recv()
-			if err != nil {
-				t.Errorf("error receiving message for P1: %v", err)
-			}
-			fmt.Println(msg)
-			p1msg.GameParams.Name += " +1"
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		p2cl := proto.NewTetrisServiceClient(conn)
-		stream, err := p2cl.NewGame(ctx, &proto.NewGameRequest{Name: "testPerson2"})
-		if err != nil {
-			t.Errorf("error calling NewGame in P2: %v", err)
-		}
-		var gameParams *proto.GameParams
-		for {
-			rcv, err := stream.Recv()
-			if err != nil {
-				t.Errorf("error receiving message for P2: %v", err)
-			}
-			if rcv.Started {
-				gameParams = rcv
-				break
-			}
-			time.Sleep(50 * time.Millisecond)
-		}
-
-		outP2, err := p2cl.GameSession(ctx)
-		if err != nil {
-			t.Errorf("error calling GameSession in P2: %v", err)
-		}
-		p1msg := &proto.GameMessage{GameParams: gameParams}
-		for range 4 {
-			if err := outP2.Send(p1msg); err != nil {
-				t.Errorf("error sending message in P2: %v", err)
-			}
-			msg, err := outP2.Recv()
-			if err != nil {
-				t.Errorf("error receiving message for P1: %v", err)
-			}
-			fmt.Println(msg)
-			p1msg.GameParams.Name += " +2"
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
+func testServer(t testing.TB) (*bufconn.Listener, func()) {
+	return testCustomServer(t, New())
 }
 
-func testServer(ctx context.Context) (*grpc.ClientConn, func()) {
+func testCustomServer(t testing.TB, tss proto.TetrisServiceServer) (*bufconn.Listener, func()) {
 	buffer := 101024 * 1024
 	lis := bufconn.Listen(buffer)
 
 	s := grpc.NewServer()
-	proto.RegisterTetrisServiceServer(s, New())
+	proto.RegisterTetrisServiceServer(s, tss)
 	go func() {
 		if err := s.Serve(lis); err != nil {
-			log.Printf("unable to serve: %v", err)
+			t.Fatalf("unable to serve: %v", err)
 		}
 	}()
 
-	conn, err := grpc.NewClient("dns://8.8.8.8/foo.googleapis.com", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+	return lis, func() {
+		if err := lis.Close(); err != nil {
+			t.Fatalf("error closing listener: %v", err)
+		}
+		s.Stop()
+	}
+}
+
+func testClient(t testing.TB, lis *bufconn.Listener) *grpc.ClientConn {
+	conn, err := grpc.NewClient("foo.googleapis.com:8080", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 		return lis.Dial()
 	}), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Printf("error connecting to server: %v", err)
+		t.Fatalf("error connecting to server: %v", err)
 	}
+	return conn
+}
 
-	return conn, func() {
-		if err := lis.Close(); err != nil {
-			log.Printf("error closing listener: %v", err)
+func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
+	ctx, timeout := context.WithTimeout(context.Background(), 10*time.Second)
+	defer timeout()
+	conn := testClient(t, lis)
+	game, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
+	if err != nil {
+		t.Errorf("error calling NewGame for P%d: %v", n, err)
+	}
+	outMsg := &proto.GameMessage{Name: fmt.Sprintf("player%d", n)}
+	if err := game.Send(outMsg); err != nil {
+		t.Errorf("error sending player name for P%d: %v", n, err)
+	}
+	// Waits for opponent
+	var started bool
+	for !started {
+		gm, err := game.Recv()
+		if err != nil {
+			t.Fatalf("error receiving message while waiting for game to start for P%d: %v", n, err)
 		}
-		s.Stop()
+		started = gm.GetIsStarted()
+	}
+	// Players send values back and forth
+	for i := range 50 {
+		outMsg.LinesClear = int32(i)
+		if err := game.Send(outMsg); err != nil {
+			t.Errorf("error sending player name for P%d: %v", n, err)
+			return
+		}
+		gm, err := game.Recv()
+		if err != nil {
+			t.Errorf("error receiving message from opponent for P%d: %v", n, err)
+			return
+		}
+		if gm.GetLinesClear() != int32(i) {
+			t.Errorf("expected %d lines cleared for player%d, got %d", i, n, gm.GetLinesClear())
+			return
+		}
 	}
 }

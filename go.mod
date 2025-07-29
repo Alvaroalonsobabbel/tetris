@@ -4,7 +4,6 @@ go 1.24.4
 
 require (
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
-	github.com/google/uuid v1.6.0
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6
 )

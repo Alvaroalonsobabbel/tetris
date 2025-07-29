@@ -19,16 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TetrisService_NewGame_FullMethodName     = "/TetrisService/NewGame"
-	TetrisService_GameSession_FullMethodName = "/TetrisService/GameSession"
+	TetrisService_PlayTetris_FullMethodName = "/TetrisService/PlayTetris"
 )
 
 // TetrisServiceClient is the client API for TetrisService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TetrisServiceClient interface {
-	NewGame(ctx context.Context, in *NewGameRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GameParams], error)
-	GameSession(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GameMessage, GameMessage], error)
+	PlayTetris(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GameMessage, GameMessage], error)
 }
 
 type tetrisServiceClient struct {
@@ -39,28 +37,9 @@ func NewTetrisServiceClient(cc grpc.ClientConnInterface) TetrisServiceClient {
 	return &tetrisServiceClient{cc}
 }
 
-func (c *tetrisServiceClient) NewGame(ctx context.Context, in *NewGameRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GameParams], error) {
+func (c *tetrisServiceClient) PlayTetris(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GameMessage, GameMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &TetrisService_ServiceDesc.Streams[0], TetrisService_NewGame_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[NewGameRequest, GameParams]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type TetrisService_NewGameClient = grpc.ServerStreamingClient[GameParams]
-
-func (c *tetrisServiceClient) GameSession(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GameMessage, GameMessage], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &TetrisService_ServiceDesc.Streams[1], TetrisService_GameSession_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &TetrisService_ServiceDesc.Streams[0], TetrisService_PlayTetris_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -69,14 +48,13 @@ func (c *tetrisServiceClient) GameSession(ctx context.Context, opts ...grpc.Call
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type TetrisService_GameSessionClient = grpc.BidiStreamingClient[GameMessage, GameMessage]
+type TetrisService_PlayTetrisClient = grpc.BidiStreamingClient[GameMessage, GameMessage]
 
 // TetrisServiceServer is the server API for TetrisService service.
 // All implementations must embed UnimplementedTetrisServiceServer
 // for forward compatibility.
 type TetrisServiceServer interface {
-	NewGame(*NewGameRequest, grpc.ServerStreamingServer[GameParams]) error
-	GameSession(grpc.BidiStreamingServer[GameMessage, GameMessage]) error
+	PlayTetris(grpc.BidiStreamingServer[GameMessage, GameMessage]) error
 	mustEmbedUnimplementedTetrisServiceServer()
 }
 
@@ -87,11 +65,8 @@ type TetrisServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedTetrisServiceServer struct{}
 
-func (UnimplementedTetrisServiceServer) NewGame(*NewGameRequest, grpc.ServerStreamingServer[GameParams]) error {
-	return status.Errorf(codes.Unimplemented, "method NewGame not implemented")
-}
-func (UnimplementedTetrisServiceServer) GameSession(grpc.BidiStreamingServer[GameMessage, GameMessage]) error {
-	return status.Errorf(codes.Unimplemented, "method GameSession not implemented")
+func (UnimplementedTetrisServiceServer) PlayTetris(grpc.BidiStreamingServer[GameMessage, GameMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method PlayTetris not implemented")
 }
 func (UnimplementedTetrisServiceServer) mustEmbedUnimplementedTetrisServiceServer() {}
 func (UnimplementedTetrisServiceServer) testEmbeddedByValue()                       {}
@@ -114,23 +89,12 @@ func RegisterTetrisServiceServer(s grpc.ServiceRegistrar, srv TetrisServiceServe
 	s.RegisterService(&TetrisService_ServiceDesc, srv)
 }
 
-func _TetrisService_NewGame_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(NewGameRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(TetrisServiceServer).NewGame(m, &grpc.GenericServerStream[NewGameRequest, GameParams]{ServerStream: stream})
+func _TetrisService_PlayTetris_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(TetrisServiceServer).PlayTetris(&grpc.GenericServerStream[GameMessage, GameMessage]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type TetrisService_NewGameServer = grpc.ServerStreamingServer[GameParams]
-
-func _TetrisService_GameSession_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(TetrisServiceServer).GameSession(&grpc.GenericServerStream[GameMessage, GameMessage]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type TetrisService_GameSessionServer = grpc.BidiStreamingServer[GameMessage, GameMessage]
+type TetrisService_PlayTetrisServer = grpc.BidiStreamingServer[GameMessage, GameMessage]
 
 // TetrisService_ServiceDesc is the grpc.ServiceDesc for TetrisService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -141,13 +105,8 @@ var TetrisService_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "NewGame",
-			Handler:       _TetrisService_NewGame_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GameSession",
-			Handler:       _TetrisService_GameSession_Handler,
+			StreamName:    "PlayTetris",
+			Handler:       _TetrisService_PlayTetris_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

@@ -3,29 +3,15 @@ syntax = "proto3";
 option go_package = "github.com/Alvaroalonsobabbel/proto";
 
 service TetrisService {
-    rpc NewGame(NewGameRequest) returns (stream GameParams) {}
-    rpc GameSession(stream GameMessage) returns (stream GameMessage) {}
-}
-
-message NewGameRequest {
-    string name = 1;
-}
-
-message GameParams {
-    string game_id = 1;
-    int32 player = 2;
-    string name = 3;
-    bool started = 4;
+    rpc PlayTetris(stream GameMessage) returns (stream GameMessage) {}
 }
 
 message GameMessage {
-    GameParams game_params = 1;
-    Tetris stack = 2;
-}
-
-message Tetris {
-  Stack stack = 1;
-  int32 lines_clear = 2;
+    string name = 1;
+    bool is_started = 2;
+    bool is_game_over = 3;
+    int32 lines_clear = 4;
+    Stack stack = 5;
 }
 
 message Stack {
