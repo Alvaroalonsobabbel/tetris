@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"tetris/terminal"
+	"tetris/client"
 )
 
 const VERSION = "v0.0.3"
@@ -33,23 +33,13 @@ var (
 
 func main() {
 	evalOptions()
-	l := initLogger()
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		l.Error("Recovered from panic", slog.Any("error", r))
-	// 		if err := keyboard.Close(); err != nil {
-	// 			l.Error("failed to close the keyboard", slog.String("error", err.Error()))
-	// 		}
-	// 	}
-	// }()
 	fmt.Print(hideCursor)
 	defer fmt.Print(showCursor)
-	rc := terminal.NewRemoteClient(name, address, l)
-	defer rc.Close()
-	terminal.New(&terminal.Options{
-		Logger:       l,
-		NoGhost:      noGhost,
-		RemoteClient: rc,
+	client.New(&client.Options{
+		Logger:  initLogger(),
+		NoGhost: noGhost,
+		Address: address,
+		Name:    name,
 	}).Start()
 }
 

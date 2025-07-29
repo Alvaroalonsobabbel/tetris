@@ -1,4 +1,4 @@
-package terminal
+package client
 
 import (
 	"fmt"
@@ -78,19 +78,17 @@ func TestNextPiece(t *testing.T) {
 
 func TestStack2Proto(t *testing.T) {
 	got := stack2Proto(tetris.NewTestTetris(tetris.J))
-	want := &proto.Tetris{
-		Stack:      &proto.Stack{Rows: make([]*proto.Row, 20)},
-		LinesClear: 0,
-	}
-	for i := range want.Stack.Rows {
-		want.Stack.Rows[i] = &proto.Row{
+	want := &proto.Stack{Rows: make([]*proto.Row, 20)}
+
+	for i := range want.Rows {
+		want.Rows[i] = &proto.Row{
 			Cells: make([]string, 10),
 		}
 	}
-	want.Stack.Rows[19].Cells[3] = "J"
-	want.Stack.Rows[18].Cells[3] = "J"
-	want.Stack.Rows[18].Cells[4] = "J"
-	want.Stack.Rows[18].Cells[5] = "J"
+	want.Rows[19].Cells[3] = "J"
+	want.Rows[18].Cells[3] = "J"
+	want.Rows[18].Cells[4] = "J"
+	want.Rows[18].Cells[5] = "J"
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("want %v, got %v", want, got)

@@ -1,4 +1,4 @@
-package terminal
+package client
 
 import (
 	_ "embed"
@@ -52,7 +52,7 @@ type templateData struct {
 	mu sync.Mutex
 }
 
-type Terminal struct {
+type Client struct {
 	writer       io.Writer
 	tetris       *tetris.Game
 	template     *template.Template
@@ -61,17 +61,17 @@ type Terminal struct {
 	doneCh       chan bool
 	lobby        atomic.Bool
 	td           *templateData
-	rc           *RemoteClient
 }
 
 type Options struct {
-	Writer       io.Writer
-	Logger       *slog.Logger
-	NoGhost      bool
-	RemoteClient *RemoteClient
+	Writer  io.Writer
+	Logger  *slog.Logger
+	NoGhost bool
+	Address string
+	Name    string
 }
 
-func New(o *Options) *Terminal {
+func New(o *Options) *Client {
 	tp, err := loadTemplate()
 	if err != nil {
 		log.Fatalf("unable to load template: %v\n", err)
@@ -85,7 +85,7 @@ func New(o *Options) *Terminal {
 	if o.Writer != nil {
 		w = o.Writer
 	}
-	return &Terminal{
+	return &Client{
 		writer:       w,
 		tetris:       t,
 		template:     tp,
@@ -95,138 +95,137 @@ func New(o *Options) *Terminal {
 		lobby:        atomic.Bool{},
 		td: &templateData{
 			NoGhost: o.NoGhost,
-			Name:    o.RemoteClient.Name,
+			Name:    o.Name,
 			Local:   t.Read(),
 		},
-		rc: o.RemoteClient,
 	}
 }
 
-func (t *Terminal) Start() {
-	t.renderGame(t.td)
-	t.renderLobby()
-	go t.listenKB()
-	<-t.doneCh
-	close(t.doneCh)
+func (c *Client) Start() {
+	c.renderGame(c.td)
+	c.renderLobby()
+	go c.listenKB()
+	<-c.doneCh
+	close(c.doneCh)
 }
 
-func (t *Terminal) listenTetris() {
+func (c *Client) listenTetris() {
 	for {
 		select {
-		case <-t.tetris.UpdateCh:
-			t.td.Local = t.tetris.Read()
-			t.renderGame(t.td)
-		case <-t.tetris.GameOverCh:
-			t.renderLobby()
-			fmt.Fprint(t.writer, "\033[11;9H|             Game Over :)             |")
+		case <-c.tetris.UpdateCh:
+			c.td.Local = c.tetris.Read()
+			c.renderGame(c.td)
+		case <-c.tetris.GameOverCh:
+			c.renderLobby()
+			fmt.Fprint(c.writer, "\033[11;9H|             Game Over :)             |")
 			return
 		}
 	}
 }
 
-func (t *Terminal) listenOnlineTetris() {
-	for {
-		select {
-		case <-t.tetris.UpdateCh:
-			t.td.mu.Lock()
-			t.td.Local = t.tetris.Read()
-			t.td.mu.Unlock()
-			t.rc.remoteSndCh <- t.td
+// func (t *Terminal) listenOnlineTetris() {
+// 	for {
+// 		select {
+// 		case <-t.tetris.UpdateCh:
+// 			t.td.mu.Lock()
+// 			t.td.Local = t.tetris.Read()
+// 			t.td.mu.Unlock()
+// 			t.rc.remoteSndCh <- t.td
 
-			t.renderGame(t.td)
-		case r := <-t.rc.remoteRcvCh:
-			t.td.mu.Lock()
-			t.td.Remote = r
-			t.td.mu.Unlock()
-			// t.tetris.UpdateTimer(r.Stack.GetLinesClear())
-			// think of a new timer
-			// check if r contains game over, finish the game here
-			// fmt.Fprint(t.writer, "\033[11;9H|              You Lose :()             |")
-			// stop current local tetris
-			t.renderGame(t.td)
-			// another channel for cancelations
-		case <-t.tetris.GameOverCh:
-			t.tetris.Stop()
-			t.renderLobby()
-			fmt.Fprint(t.writer, "\033[11;9H|              You Lose :()             |")
-			return
-		}
-	}
-}
+// 			t.renderGame(t.td)
+// 		case r := <-t.rc.remoteRcvCh:
+// 			t.td.mu.Lock()
+// 			t.td.Remote = r
+// 			t.td.mu.Unlock()
+// 			// t.tetris.UpdateTimer(r.Stack.GetLinesClear())
+// 			// think of a new timer
+// 			// check if r contains game over, finish the game here
+// 			// fmt.Fprint(t.writer, "\033[11;9H|              You Lose :()             |")
+// 			// stop current local tetris
+// 			t.renderGame(t.td)
+// 			// another channel for cancelations
+// 		case <-t.tetris.GameOverCh:
+// 			t.tetris.Stop()
+// 			t.renderLobby()
+// 			fmt.Fprint(t.writer, "\033[11;9H|              You Lose :()             |")
+// 			return
+// 		}
+// 	}
+// }
 
-func (t *Terminal) listenKB() {
+func (c *Client) listenKB() {
 kbListener:
 	for {
-		event, ok := <-t.keysEventsCh
+		event, ok := <-c.keysEventsCh
 		if !ok {
-			t.logger.Error("Keyboard events channel closed unexpectedly")
+			c.logger.Error("Keyboard events channel closed unexpectedly")
 			break
 		}
 		if event.Err != nil {
-			t.logger.Error("keysEvents error", slog.String("error", event.Err.Error()))
+			c.logger.Error("keysEvents error", slog.String("error", event.Err.Error()))
 			break
 		}
 		if event.Key == keyboard.KeyCtrlC {
 			break
 		}
-		if t.lobby.Load() {
+		if c.lobby.Load() {
 			switch event.Rune {
 			case 'p':
-				go t.listenTetris()
-				t.tetris.Start()
-			case 'o':
-				fmt.Fprint(t.writer, "\033[13;9H|       connecting to server...        |")
-				if !t.rc.start() {
-					t.renderLobby()
-					fmt.Fprint(t.writer, "\033[12;9H|       something went wrong :(        |")
-					continue
-				}
-				t.td.Remote = t.rc.gm
-				go t.listenOnlineTetris()
-				t.tetris.Start()
+				go c.listenTetris()
+				c.tetris.Start()
+			// case 'o':
+			// 	fmt.Fprint(t.writer, "\033[13;9H|       connecting to server...        |")
+			// 	if !t.rc.start() {
+			// 		t.renderLobby()
+			// 		fmt.Fprint(t.writer, "\033[12;9H|       something went wrong :(        |")
+			// 		continue
+			// 	}
+			// 	t.td.Remote = t.rc.gm
+			// 	go t.listenOnlineTetris()
+			// 	t.tetris.Start()
 			case 'q':
 				break kbListener
 			default:
 				continue
 			}
-			t.lobby.Store(false)
+			c.lobby.Store(false)
 			// clear the screen after the lobby
-			fmt.Fprint(t.writer, "\033[2J\033[H")
+			fmt.Fprint(c.writer, "\033[2J\033[H")
 		} else {
 			switch {
 			case event.Key == keyboard.KeyArrowDown || event.Rune == 's':
-				t.tetris.Action(tetris.MoveDown)
+				c.tetris.Action(tetris.MoveDown)
 			case event.Key == keyboard.KeyArrowLeft || event.Rune == 'a':
-				t.tetris.Action(tetris.MoveLeft)
+				c.tetris.Action(tetris.MoveLeft)
 			case event.Key == keyboard.KeyArrowRight || event.Rune == 'd':
-				t.tetris.Action(tetris.MoveRight)
+				c.tetris.Action(tetris.MoveRight)
 			case event.Key == keyboard.KeyArrowUp || event.Rune == 'e':
-				t.tetris.Action(tetris.RotateRight)
+				c.tetris.Action(tetris.RotateRight)
 			case event.Rune == 'q':
-				t.tetris.Action(tetris.RotateLeft)
+				c.tetris.Action(tetris.RotateLeft)
 			case event.Key == keyboard.KeySpace:
-				t.tetris.Action(tetris.DropDown)
+				c.tetris.Action(tetris.DropDown)
 			}
 		}
 	}
-	t.doneCh <- true
+	c.doneCh <- true
 }
 
-func (t *Terminal) renderLobby() {
-	t.lobby.Store(true)
-	fmt.Fprint(t.writer, "\033[10;9H+--------------------------------------+")
-	fmt.Fprint(t.writer, "\033[11;9H|      Welcome to Terminal Tetris      |")
-	fmt.Fprint(t.writer, "\033[12;9H|                                      |")
-	fmt.Fprint(t.writer, "\033[13;9H|      (p)lay   (o)nline   (q)uit      |")
-	fmt.Fprint(t.writer, "\033[14;9H+--------------------------------------+")
+func (c *Client) renderLobby() {
+	c.lobby.Store(true)
+	fmt.Fprint(c.writer, "\033[10;9H+--------------------------------------+")
+	fmt.Fprint(c.writer, "\033[11;9H|      Welcome to Terminal Tetris      |")
+	fmt.Fprint(c.writer, "\033[12;9H|                                      |")
+	fmt.Fprint(c.writer, "\033[13;9H|      (p)lay   (o)nline   (q)uit      |")
+	fmt.Fprint(c.writer, "\033[14;9H+--------------------------------------+")
 }
 
-func (t *Terminal) renderGame(td *templateData) {
-	fmt.Fprint(t.writer, resetPos)
+func (c *Client) renderGame(td *templateData) {
+	fmt.Fprint(c.writer, resetPos)
 	td.mu.Lock()
 	defer td.mu.Unlock()
-	if err := t.template.Execute(t.writer, td); err != nil {
-		t.logger.Error("Unable to execute template", slog.String("error", err.Error()))
+	if err := c.template.Execute(c.writer, td); err != nil {
+		c.logger.Error("Unable to execute template", slog.String("error", err.Error()))
 	}
 }
 
@@ -286,7 +285,7 @@ func remoteStack(t *templateData) [20][10]string {
 	for y := range 20 {
 		for x := range 10 {
 			out := "  "
-			c, ok := colorMap[tetris.Shape(t.Remote.Stack.Stack.Rows[y].Cells[x])]
+			c, ok := colorMap[tetris.Shape(t.Remote.Stack.Rows[y].Cells[x])]
 			if ok {
 				out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
 			}
@@ -333,13 +332,11 @@ func vs(lName, rName string) string {
 	return fmt.Sprintf(" %s <- vs -> %s ", lName, rName)
 }
 
-func stack2Proto(t *tetris.Tetris) *proto.Tetris {
-	rendered := &proto.Tetris{
-		Stack:      &proto.Stack{Rows: make([]*proto.Row, 20)},
-		LinesClear: int32(t.LinesClear),
-	}
-	for i := range rendered.Stack.Rows {
-		rendered.Stack.Rows[i] = &proto.Row{
+func stack2Proto(t *tetris.Tetris) *proto.Stack {
+	rendered := &proto.Stack{Rows: make([]*proto.Row, 20)}
+
+	for i := range rendered.Rows {
+		rendered.Rows[i] = &proto.Row{
 			Cells: make([]string, 10),
 		}
 	}
@@ -347,7 +344,7 @@ func stack2Proto(t *tetris.Tetris) *proto.Tetris {
 	for iy, y := range t.Stack {
 		for ix, x := range y {
 			if x != tetris.Shape("") {
-				rendered.Stack.Rows[iy].Cells[ix] = string(x)
+				rendered.Rows[iy].Cells[ix] = string(x)
 			}
 		}
 	}
@@ -357,7 +354,7 @@ func stack2Proto(t *tetris.Tetris) *proto.Tetris {
 		for iy, y := range t.Tetromino.Grid {
 			for ix, x := range y {
 				if x {
-					rendered.Stack.Rows[t.Tetromino.Y-iy].Cells[t.Tetromino.X+ix] = string(t.Tetromino.Shape)
+					rendered.Rows[t.Tetromino.Y-iy].Cells[t.Tetromino.X+ix] = string(t.Tetromino.Shape)
 				}
 			}
 		}
