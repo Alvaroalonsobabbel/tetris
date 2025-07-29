@@ -96,7 +96,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 
 	gm, err := stream.Recv()
 	if err != nil {
-		return status.Errorf(codes.Canceled, "error receiving first stream message: %w", err)
+		return status.Errorf(codes.Canceled, "error receiving first stream message: %v", err)
 	}
 	log.Printf("%s (player %d) is waiting to start game\n", gm.GetName(), player)
 
@@ -113,7 +113,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 		}
 	}
 	if err := stream.Send(&proto.GameMessage{IsStarted: true}); err != nil {
-		return status.Errorf(codes.Canceled, "failed to send gameMessage isStarted for player%d: %w", player, err)
+		return status.Errorf(codes.Canceled, "failed to send gameMessage isStarted for player%d: %v", player, err)
 	}
 
 	// Receive msg from stream and send to opponent's channel.
@@ -139,7 +139,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	// Receive from opponent's channel and send to stream.
 	for om := range opponentCh {
 		if err := stream.Send(om); err != nil {
-			return status.Errorf(codes.Canceled, "failed to send opponent message to P%d: %w", player, err)
+			return status.Errorf(codes.Canceled, "failed to send opponent message to P%d: %v", player, err)
 		}
 	}
 	return nil
