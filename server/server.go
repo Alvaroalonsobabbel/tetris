@@ -75,11 +75,6 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	var opponentCh chan *proto.GameMessage
 	defer gameInstance.close()
 
-	gm, err := stream.Recv()
-	if err != nil {
-		return fmt.Errorf("error receiving first stream message: %w", err)
-	}
-
 	// New game setup
 	if gameInstance == nil {
 		t.mu.Lock()
@@ -98,8 +93,13 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 			opponentCh = gameInstance.p1Ch
 		}
 		t.mu.Unlock()
-		log.Printf("%s (player %d) is waiting to start game\n", gm.GetName(), player)
 	}
+
+	gm, err := stream.Recv()
+	if err != nil {
+		return fmt.Errorf("error receiving first stream message: %w", err)
+	}
+	log.Printf("%s (player %d) is waiting to start game\n", gm.GetName(), player)
 
 	// Only player 1 waits for the opponent.
 	if player == player1 {
@@ -117,7 +117,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 		return fmt.Errorf("failed to send gameMessage for a new game: %w", err)
 	}
 
-	// Receive msg and send to opponent's channel.
+	// Receive msg from stream and send to opponent's channel.
 	go func() {
 		ch := gameInstance.p1Ch
 		if player == player2 {
