@@ -475,6 +475,14 @@ func TestToStack(t *testing.T) {
 	}
 }
 
+func TestRead(t *testing.T) {
+	tetris := NewTestTetris(J)
+	tetris.action(MoveDown)
+	if reflect.DeepEqual(tetris, tetris.read()) {
+		t.Errorf("wanted %v, got %v", tetris, tetris.read())
+	}
+}
+
 func TestRandomBag(t *testing.T) {
 	t.Run("bag should contain 7 elements. after drawing it should contain one less", func(t *testing.T) {
 		t.Parallel()

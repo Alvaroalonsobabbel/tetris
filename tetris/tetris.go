@@ -14,9 +14,7 @@ package tetris
 
 import (
 	"math/rand"
-
 	"slices"
-	"sync"
 )
 
 type Tetris struct {
@@ -34,7 +32,6 @@ type Tetris struct {
 
 	GameOver bool
 
-	mu  sync.RWMutex
 	bag *bag
 }
 
@@ -62,6 +59,11 @@ func NewTestTetris(shape Shape) *Tetris {
 }
 
 func (t *Tetris) action(a Action) {
+	if t.Tetromino == nil {
+		// between toStack() and next round's setTetromino() Tetromino is nil.
+		// we return here to avoid user commands to cause panic.
+		return
+	}
 	switch a {
 	case MoveLeft:
 		if !t.isCollision(-1, 0, t.Tetromino) {
@@ -251,6 +253,7 @@ func (t *Tetris) setLevel() {
 }
 
 func (t *Tetris) isGameOver() bool {
+	// we consider game over when next tetromino spawn position would have a collision on the stack.
 	t.GameOver = t.isCollision(0, 0, t.NexTetromino)
 	return t.GameOver
 }
@@ -261,6 +264,26 @@ func (t *Tetris) dropDownDelta() int {
 		delta--
 	}
 	return delta + 1
+}
+
+func (t *Tetris) read() *Tetris {
+	// read() returns a copy of the current Tetris status that's safe to read concurrently.
+	var stack [][]Shape
+	if t.Stack != nil {
+		stack = make([][]Shape, len(t.Stack))
+		for i := range t.Stack {
+			stack[i] = make([]Shape, len(t.Stack[i]))
+			copy(stack[i], t.Stack[i])
+		}
+	}
+	return &Tetris{
+		Stack:        stack,
+		Tetromino:    t.Tetromino.copy(),
+		NexTetromino: t.NexTetromino.copy(),
+		Level:        t.Level,
+		LinesClear:   t.LinesClear,
+		GameOver:     t.GameOver,
+	}
 }
 
 type bag struct {

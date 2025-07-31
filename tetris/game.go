@@ -36,8 +36,8 @@ func (t *wrappedTicker) Stop()                 { t.ticker.Stop() }
 func (t *wrappedTicker) Reset(d time.Duration) { t.ticker.Reset(d) }
 
 type Game struct {
-	GameOverCh chan bool
-	UpdateCh   chan bool
+	// UpdateCh sends an update to the channel every time the Tetris status changes.
+	UpdateCh chan *Tetris
 
 	actionCh    chan Action
 	doneCh      chan bool
@@ -52,18 +52,18 @@ func NewGame() *Game {
 
 func NewConfigurableGame(ticker Ticker) *Game {
 	return &Game{
-		GameOverCh: make(chan bool),
-		UpdateCh:   make(chan bool),
-		actionCh:   make(chan Action),
-		doneCh:     make(chan bool, 1),
-		tetris:     newTetris(),
-		ticker:     ticker,
+		UpdateCh: make(chan *Tetris),
+		actionCh: make(chan Action),
+		doneCh:   make(chan bool),
+		tetris:   newTetris(),
+		ticker:   ticker,
 	}
 }
 
 func (g *Game) Start() {
 	g.tetris = newTetris()
-	g.UpdateCh <- true
+	g.ticker.Reset(g.setTime())
+	g.UpdateCh <- g.tetris.read()
 	go g.listen()
 }
 
@@ -81,54 +81,27 @@ func (g *Game) UpdateTimer(i int32) {
 	g.ticker.Reset(g.setTime())
 }
 
-// Read() returns a copy of the current Tetris status that's safe to read concurrently.
-func (g *Game) Read() *Tetris {
-	g.tetris.mu.RLock()
-	defer g.tetris.mu.RUnlock()
-	var stack [][]Shape
-	if g.tetris.Stack != nil {
-		stack = make([][]Shape, len(g.tetris.Stack))
-		for i := range g.tetris.Stack {
-			stack[i] = make([]Shape, len(g.tetris.Stack[i]))
-			copy(stack[i], g.tetris.Stack[i])
-		}
-	}
-	return &Tetris{
-		Level:        g.tetris.Level,
-		LinesClear:   g.tetris.LinesClear,
-		Tetromino:    g.tetris.Tetromino.copy(),
-		NexTetromino: g.tetris.NexTetromino.copy(),
-		Stack:        stack,
-	}
-}
-
 func (g *Game) listen() {
 	g.ticker.Reset(g.setTime())
 	for {
 		select {
 		case <-g.ticker.C():
-			g.tetris.mu.Lock()
 			if g.tetris.isCollision(0, -1, g.tetris.Tetromino) {
 				g.next()
 			} else {
 				g.tetris.action(MoveDown)
 			}
 		case a := <-g.actionCh:
-			g.tetris.mu.Lock()
-			if g.tetris.Tetromino != nil {
-				// between toStack() and next round's setTetromino() Tetromino is nil.
-				// we return here to avoid user commands to cause panic.
-				g.tetris.action(a)
-				if a == DropDown { // drop down doesn't wait for the tick to finish the round
-					g.next()
-				}
+			g.tetris.action(a)
+			if a == DropDown {
+				// drop down doesn't wait for the tick to finish the round
+				g.next()
 			}
 		case <-g.doneCh:
 			return
 		}
 		if g.tetris != nil {
-			g.tetris.mu.Unlock()
-			g.UpdateCh <- true
+			g.UpdateCh <- g.tetris.read()
 		}
 	}
 }
@@ -139,9 +112,8 @@ func (g *Game) next() {
 	g.clearLines()
 	g.tetris.setLevel()
 	if g.tetris.isGameOver() {
-		g.GameOverCh <- true
+		g.UpdateCh <- g.tetris.read()
 		g.doneCh <- true
-		g.tetris = nil
 		return
 	}
 	g.tetris.setTetromino()
@@ -171,12 +143,9 @@ func (g *Game) clearLines() {
 				g.tetris.Stack[k] = v
 			}
 		}
-		// we allow whatever is rendering to acccess the
-		// struct while we wait for the animation time.
-		g.tetris.mu.Unlock()
-		g.UpdateCh <- true
+
+		g.UpdateCh <- g.tetris.read()
 		time.Sleep(40 * time.Millisecond)
-		g.tetris.mu.Lock()
 	}
 
 	// remove complete lines in reverse order to avoid index shift issues.
