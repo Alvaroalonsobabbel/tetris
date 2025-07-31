@@ -32,6 +32,8 @@ type Tetris struct {
 	Level      int
 	LinesClear int
 
+	GameOver bool
+
 	mu  sync.RWMutex
 	bag *bag
 }
@@ -249,7 +251,8 @@ func (t *Tetris) setLevel() {
 }
 
 func (t *Tetris) isGameOver() bool {
-	return t.isCollision(0, 0, t.NexTetromino)
+	t.GameOver = t.isCollision(0, 0, t.NexTetromino)
+	return t.GameOver
 }
 
 func (t *Tetris) dropDownDelta() int {

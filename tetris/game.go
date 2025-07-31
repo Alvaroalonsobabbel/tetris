@@ -64,7 +64,6 @@ func NewConfigurableGame(ticker Ticker) *Game {
 func (g *Game) Start() {
 	g.tetris = newTetris()
 	g.UpdateCh <- true
-	// g.ticker.Reset(g.setTime())
 	go g.listen()
 }
 
@@ -127,8 +126,10 @@ func (g *Game) listen() {
 		case <-g.doneCh:
 			return
 		}
-		g.tetris.mu.Unlock()
-		g.UpdateCh <- true
+		if g.tetris != nil {
+			g.tetris.mu.Unlock()
+			g.UpdateCh <- true
+		}
 	}
 }
 
@@ -140,6 +141,7 @@ func (g *Game) next() {
 	if g.tetris.isGameOver() {
 		g.GameOverCh <- true
 		g.doneCh <- true
+		g.tetris = nil
 		return
 	}
 	g.tetris.setTetromino()

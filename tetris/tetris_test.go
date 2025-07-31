@@ -584,8 +584,14 @@ func TestIsGameOver(t *testing.T) {
 	if tetris.isGameOver() {
 		t.Error("expected isGameOver() to be false")
 	}
+	if tetris.GameOver {
+		t.Error("expected GameOver to be false")
+	}
 	tetris.Stack[19][3] = J
 	if !tetris.isGameOver() {
 		t.Error("expected isGameOver() to be true")
+	}
+	if !tetris.GameOver {
+		t.Error("expected GameOver to be true")
 	}
 }
