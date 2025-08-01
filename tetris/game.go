@@ -47,21 +47,19 @@ type Game struct {
 }
 
 func NewGame() *Game {
-	return NewConfigurableGame(newWrappedTicker(1 * time.Hour))
-}
-
-func NewConfigurableGame(ticker Ticker) *Game {
 	return &Game{
 		UpdateCh: make(chan *Tetris),
 		actionCh: make(chan Action),
 		doneCh:   make(chan bool),
 		tetris:   newTetris(),
-		ticker:   ticker,
+		ticker:   newWrappedTicker(time.Hour),
 	}
 }
 
 func (g *Game) Start() {
-	g.tetris = newTetris()
+	if g.tetris.GameOver {
+		g.tetris = newTetris()
+	}
 	g.ticker.Reset(g.setTime())
 	g.UpdateCh <- g.tetris.read()
 	go g.listen()
