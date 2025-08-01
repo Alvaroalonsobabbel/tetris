@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"strings"
-	"sync"
 	"tetris/proto"
 	"tetris/tetris"
 	"text/template"
@@ -44,8 +43,6 @@ type templateData struct {
 	Remote  *proto.GameMessage
 	Name    string
 	NoGhost bool
-
-	mu sync.Mutex
 }
 
 type render struct {
@@ -72,7 +69,7 @@ func newRender(l *slog.Logger, ng bool, name string) (*render, error) {
 }
 
 func (r *render) lobby() {
-	if r.templateData.Local == nil {
+	if r.Local == nil {
 		// first time loading lobby we pre-load a new tetris game.
 		r.local(tetris.NewTestTetris(tetris.J))
 	}
@@ -84,7 +81,7 @@ func (r *render) lobby() {
 }
 
 func (r *render) local(t *tetris.Tetris) {
-	r.templateData.Local = t
+	r.Local = t
 	fmt.Fprint(r.writer, resetPos)
 	if err := r.template.Execute(r.writer, r.templateData); err != nil {
 		r.logger.Error("unable to execute template in local()", slog.String("error", err.Error()))

@@ -39,7 +39,7 @@ func TestStartStop(t *testing.T) {
 	te := tetris.NewTestTetris(tetris.J)
 	game, ticker := tetris.NewTestGame(te)
 	go func() {
-		for range game.GetUpdate() {
+		for range game.GetUpdate() { // nolint:revive
 		}
 	}()
 	game.Start()

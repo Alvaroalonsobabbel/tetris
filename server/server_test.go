@@ -114,7 +114,7 @@ func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
 	}
 	// Players send values back and forth
 	for i := range 50 {
-		outMsg.LinesClear = int32(i)
+		outMsg.LinesClear = int32(i) // nolint:gosec
 		if err := game.Send(outMsg); err != nil {
 			t.Errorf("error sending player name for P%d: %v", n, err)
 			return
@@ -124,7 +124,7 @@ func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
 			t.Errorf("error receiving message from opponent for P%d: %v", n, err)
 			return
 		}
-		if gm.GetLinesClear() != int32(i) {
+		if gm.GetLinesClear() != int32(i) { // nolint:gosec
 			t.Errorf("expected %d lines cleared for player%d, got %d", i, n, gm.GetLinesClear())
 			return
 		}

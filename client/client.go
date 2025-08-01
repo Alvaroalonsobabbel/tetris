@@ -41,11 +41,11 @@ type Options struct {
 func New(l *slog.Logger, o *Options) (*Client, error) {
 	r, err := newRender(l, o.NoGhost, o.Name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load renderer: %w\n", err)
+		return nil, fmt.Errorf("failed to load renderer: %w", err)
 	}
 	kb, err := keyboard.GetKeys(20)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open keyboard: %w\n", err)
+		return nil, fmt.Errorf("failed to open keyboard: %w", err)
 	}
 	return &Client{
 		tetris: tetris.NewGame(),

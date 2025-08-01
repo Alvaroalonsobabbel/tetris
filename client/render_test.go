@@ -52,7 +52,6 @@ func TestRender(t *testing.T) {
 			approvals.VerifyString(t, w.String())
 		})
 	}
-
 }
 
 func TestLocalStack(t *testing.T) {

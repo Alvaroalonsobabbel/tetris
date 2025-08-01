@@ -65,7 +65,7 @@ func TestClient(t *testing.T) {
 
 	wantLocalCount := 1
 
-	//'p' would call tetris.Start(), set lobby to false and render.local() once.
+	// 'p' would call tetris.Start(), set lobby to false and render.local() once.
 	kCh <- keyboard.KeyEvent{Rune: 'p'}
 	time.Sleep(10 * time.Millisecond)
 	if !tts.start {
@@ -122,7 +122,7 @@ func TestClient(t *testing.T) {
 		t.Errorf("wanted lobby to be true")
 	}
 
-	//'q' should quit the game back in the lobby"
+	// 'q' should quit the game back in the lobby"
 	kCh <- keyboard.KeyEvent{Rune: 'q'}
 	wgDone := make(chan struct{})
 	go func() { wg.Wait(); close(wgDone) }()
