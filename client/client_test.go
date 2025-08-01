@@ -2,120 +2,133 @@ package client
 
 import (
 	"fmt"
-	"reflect"
+	"log/slog"
+	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"tetris/proto"
 	"tetris/tetris"
+	"time"
+
+	"github.com/eiannone/keyboard"
 )
 
-func TestLocalStack(t *testing.T) {
-	td := &templateData{
-		Local: tetris.NewTestTetris(tetris.J),
-	}
-	want := [20][10]string{}
-	for y := range want {
-		for x := range want[y] {
-			want[y][x] = "  "
-		}
-	}
-	blueCell := "\x1b[7m\x1b[34m[]\x1b[0m"
-	want[0][3] = blueCell
-	want[1][3] = blueCell
-	want[1][4] = blueCell
-	want[1][5] = blueCell
-	want[19][3] = "[]"
-	want[18][3] = "[]"
-	want[19][4] = "[]"
-	want[19][5] = "[]"
-	got := localStack(td)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("want %v, got %v", want, got)
+type mockTetris struct {
+	updateCh chan *tetris.Tetris
+	start    bool
+	stop     bool
+	action   tetris.Action
+}
+
+func (m *mockTetris) Stop()                            { m.stop = true }
+func (m *mockTetris) GetUpdate() <-chan *tetris.Tetris { return m.updateCh }
+func (m *mockTetris) Start()                           { m.start = true; m.updateCh <- &tetris.Tetris{} }
+func (m *mockTetris) Action(a tetris.Action)           { m.action = a; m.updateCh <- &tetris.Tetris{} }
+func (m *mockTetris) sendGameOver()                    { m.updateCh <- &tetris.Tetris{GameOver: true} }
+
+type mockRender struct {
+	lobbyCount  int
+	localCount  int
+	remoteCount int
+}
+
+func (m *mockRender) lobby()                    { m.lobbyCount++ }
+func (m *mockRender) remote(*proto.GameMessage) { m.remoteCount++ }
+func (m *mockRender) local(t *tetris.Tetris) {
+	m.localCount++
+	if t.GameOver {
+		m.lobbyCount++
 	}
 }
 
-func TestRemoteStack(t *testing.T) {
-	td := &templateData{
-		Remote: &proto.GameMessage{
-			Stack: stack2Proto(tetris.NewTestTetris(tetris.J)),
-		},
+func TestClient(t *testing.T) {
+	render := &mockRender{}
+	tts := &mockTetris{updateCh: make(chan *tetris.Tetris)}
+	kCh := make(chan keyboard.KeyEvent)
+	cl := &Client{
+		tetris: tts,
+		render: render,
+		logger: slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})),
+		kbCh:   kCh,
+		doneCh: make(chan bool),
+		lobby:  atomic.Bool{},
 	}
-	want := [20][10]string{}
-	for y := range want {
-		for x := range want[y] {
-			want[y][x] = "  "
-		}
-	}
-	blueCell := "\x1b[7m\x1b[34m[]\x1b[0m"
-	want[0][3] = blueCell
-	want[1][3] = blueCell
-	want[1][4] = blueCell
-	want[1][5] = blueCell
-	got := remoteStack(td)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("want %v, got %v", want, got)
-	}
-}
 
-func TestNextPiece(t *testing.T) {
-	tests := []struct {
-		shape tetris.Shape
-		want  []string
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() { cl.Start(); wg.Done() }()
+	time.Sleep(10 * time.Millisecond)
+	if render.lobbyCount != 1 {
+		t.Errorf("wanted render.lobby() to be called at the beginning of the game once, got %d", render.lobbyCount)
+	}
+
+	wantLocalCount := 1
+
+	//'p' would call tetris.Start(), set lobby to false and render.local() once.
+	kCh <- keyboard.KeyEvent{Rune: 'p'}
+	time.Sleep(10 * time.Millisecond)
+	if !tts.start {
+		t.Errorf("wanted tetris.Start() to be called, got %t", tts.start)
+	}
+	if cl.lobby.Load() {
+		t.Errorf("wanted lobby to be false after 'p' key press")
+	}
+	if render.localCount != wantLocalCount {
+		t.Errorf("wanted render.local() to be called once, got %d", render.localCount)
+	}
+
+	// while in game, keys should direct to tetris actions.
+	actions := []struct {
+		key    keyboard.KeyEvent
+		action tetris.Action
 	}{
-		{tetris.J, []string{"\x1b[7m\x1b[34m[]\x1b[0m      ", "\x1b[7m\x1b[34m[]\x1b[0m\x1b[7m\x1b[34m[]\x1b[0m\x1b[7m\x1b[34m[]\x1b[0m  "}},
-		{tetris.O, []string{"\x1b[7m\x1b[33m[]\x1b[0m\x1b[7m\x1b[33m[]\x1b[0m    ", "\x1b[7m\x1b[33m[]\x1b[0m\x1b[7m\x1b[33m[]\x1b[0m    "}},
-		{tetris.I, []string{"        ", "\x1b[7m\x1b[36m[]\x1b[0m\x1b[7m\x1b[36m[]\x1b[0m\x1b[7m\x1b[36m[]\x1b[0m\x1b[7m\x1b[36m[]\x1b[0m"}},
+		{key: keyboard.KeyEvent{Rune: 's'}, action: tetris.MoveDown},
+		{key: keyboard.KeyEvent{Key: keyboard.KeyArrowDown}, action: tetris.MoveDown},
+		{key: keyboard.KeyEvent{Rune: 'a'}, action: tetris.MoveLeft},
+		{key: keyboard.KeyEvent{Key: keyboard.KeyArrowLeft}, action: tetris.MoveLeft},
+		{key: keyboard.KeyEvent{Rune: 'd'}, action: tetris.MoveRight},
+		{key: keyboard.KeyEvent{Key: keyboard.KeyArrowRight}, action: tetris.MoveRight},
+		{key: keyboard.KeyEvent{Rune: 'e'}, action: tetris.RotateRight},
+		{key: keyboard.KeyEvent{Key: keyboard.KeyArrowUp}, action: tetris.RotateRight},
+		{key: keyboard.KeyEvent{Rune: 'q'}, action: tetris.RotateLeft},
+		{key: keyboard.KeyEvent{Key: keyboard.KeySpace}, action: tetris.DropDown},
 	}
-	for _, tt := range tests {
-		t.Run(string(tt.shape), func(t *testing.T) {
-			td := &templateData{Local: tetris.NewTestTetris(tt.shape)}
-			got := nextPiece(td)
-			if !reflect.DeepEqual(tt.want, got) {
-				t.Errorf("want %v, got %v", tt.want, got)
+	for _, a := range actions {
+		wantLocalCount++
+		t.Run(fmt.Sprintf("key %v", a.key), func(t *testing.T) {
+			kCh <- a.key
+			time.Sleep(10 * time.Millisecond)
+			if render.localCount != wantLocalCount {
+				t.Errorf("wanted render.local() to be %d times, got %d", wantLocalCount, render.localCount)
+			}
+			if tts.action != a.action {
+				t.Errorf("wanted action %v, got %v", a.action, tts.action)
 			}
 		})
 	}
-}
 
-func TestStack2Proto(t *testing.T) {
-	got := stack2Proto(tetris.NewTestTetris(tetris.J))
-	want := &proto.Stack{Rows: make([]*proto.Row, 20)}
-
-	for i := range want.Rows {
-		want.Rows[i] = &proto.Row{
-			Cells: make([]string, 10),
-		}
+	// tetris.GameOver should render.local(), render.lobby() and set lobby to true.
+	wantLocalCount++
+	tts.sendGameOver()
+	time.Sleep(10 * time.Millisecond)
+	if render.localCount != wantLocalCount {
+		t.Errorf("wanted render.local() to be %d times, got %d", wantLocalCount, render.localCount)
 	}
-	want.Rows[19].Cells[3] = "J"
-	want.Rows[18].Cells[3] = "J"
-	want.Rows[18].Cells[4] = "J"
-	want.Rows[18].Cells[5] = "J"
-
-	if !reflect.DeepEqual(want, got) {
-		t.Errorf("want %v, got %v", want, got)
+	if render.lobbyCount != 2 {
+		t.Errorf("wanted render.lobby() to be called 2 times, got %d", render.lobbyCount)
 	}
-}
-
-func TestVS(t *testing.T) {
-	tests := []struct {
-		lName, rName, want string
-	}{
-		{
-			"123456789", "123456789", " 123456789 <- vs -> 123456789 ",
-		},
-		{
-			"1234567890", "12345678", " 123456789 <- vs -> 12345678  ",
-		},
-		{
-			"12345678", "12345678", "  12345678 <- vs -> 12345678  ",
-		},
+	if !cl.lobby.Load() {
+		t.Errorf("wanted lobby to be true")
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("lName %s and rName %s should render %s", tt.lName, tt.rName, tt.want), func(t *testing.T) {
-			got := vs(tt.lName, tt.rName)
-			if tt.want != got {
-				t.Errorf("want %v, got %v", tt.want, got)
-			}
-		})
+	//'q' should quit the game back in the lobby"
+	kCh <- keyboard.KeyEvent{Rune: 'q'}
+	wgDone := make(chan struct{})
+	go func() { wg.Wait(); close(wgDone) }()
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("timeout waiting for quit")
+	case <-wgDone:
 	}
 }
