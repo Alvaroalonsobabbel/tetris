@@ -36,9 +36,7 @@ func (t *wrappedTicker) Stop()                 { t.ticker.Stop() }
 func (t *wrappedTicker) Reset(d time.Duration) { t.ticker.Reset(d) }
 
 type Game struct {
-	// UpdateCh sends an update to the channel every time the Tetris status changes.
-	UpdateCh chan *Tetris
-
+	updateCh    chan *Tetris
 	actionCh    chan Action
 	doneCh      chan bool
 	tetris      *Tetris
@@ -48,7 +46,7 @@ type Game struct {
 
 func NewGame() *Game {
 	return &Game{
-		UpdateCh: make(chan *Tetris),
+		updateCh: make(chan *Tetris),
 		actionCh: make(chan Action),
 		doneCh:   make(chan bool),
 		tetris:   newTetris(),
@@ -61,7 +59,7 @@ func (g *Game) Start() {
 		g.tetris = newTetris()
 	}
 	g.ticker.Reset(g.setTime())
-	g.UpdateCh <- g.tetris.read()
+	g.updateCh <- g.tetris.read()
 	go g.listen()
 }
 
@@ -72,6 +70,10 @@ func (g *Game) Stop() {
 
 func (g *Game) Action(a Action) {
 	g.actionCh <- a
+}
+
+func (g *Game) GetUpdate() <-chan *Tetris {
+	return g.updateCh
 }
 
 func (g *Game) UpdateTimer(i int32) {
@@ -99,7 +101,7 @@ func (g *Game) listen() {
 			return
 		}
 		if g.tetris != nil {
-			g.UpdateCh <- g.tetris.read()
+			g.updateCh <- g.tetris.read()
 		}
 	}
 }
@@ -110,7 +112,7 @@ func (g *Game) next() {
 	g.clearLines()
 	g.tetris.setLevel()
 	if g.tetris.isGameOver() {
-		g.UpdateCh <- g.tetris.read()
+		g.updateCh <- g.tetris.read()
 		g.doneCh <- true
 		return
 	}
@@ -142,7 +144,7 @@ func (g *Game) clearLines() {
 			}
 		}
 
-		g.UpdateCh <- g.tetris.read()
+		g.updateCh <- g.tetris.read()
 		time.Sleep(40 * time.Millisecond)
 	}
 

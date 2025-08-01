@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestUpdateCh(t *testing.T) {
+func TestGetUpdate(t *testing.T) {
 	te := tetris.NewTestTetris(tetris.J)
 	game, ticker := tetris.NewTestGame(te)
 	doneCh := make(chan struct{})
@@ -15,7 +15,7 @@ func TestUpdateCh(t *testing.T) {
 	go func() {
 		for {
 			select {
-			case u := <-game.UpdateCh:
+			case u := <-game.GetUpdate():
 				if u.Tetromino.Y != wantY {
 					t.Errorf("Expected tetromino Y to be %d, got %d", wantY, u.Tetromino.Y)
 				}
@@ -39,7 +39,7 @@ func TestStartStop(t *testing.T) {
 	te := tetris.NewTestTetris(tetris.J)
 	game, ticker := tetris.NewTestGame(te)
 	go func() {
-		for range game.UpdateCh {
+		for range game.GetUpdate() {
 		}
 	}()
 	game.Start()
