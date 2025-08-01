@@ -479,7 +479,10 @@ func TestRead(t *testing.T) {
 	tetris := NewTestTetris(J)
 	tetris.action(MoveDown)
 	if reflect.DeepEqual(tetris, tetris.read()) {
-		t.Errorf("wanted %v, got %v", tetris, tetris.read())
+		t.Errorf("tetris and tetris.read() content should be equal. wanted %v, got %v", tetris, tetris.read())
+	}
+	if tetris == tetris.read() {
+		t.Errorf("tetris and tetris.read() pointers should be different. wanted %p, got %p", tetris, tetris.read())
 	}
 }
 
