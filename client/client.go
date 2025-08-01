@@ -39,17 +39,17 @@ type Options struct {
 }
 
 func New(l *slog.Logger, o *Options) (*Client, error) {
-	// r, err := render.New()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to load renderer: %w\n", err)
-	// }
+	r, err := newRender(l, o.NoGhost, o.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load renderer: %w\n", err)
+	}
 	kb, err := keyboard.GetKeys(20)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open keyboard: %w\n", err)
 	}
 	return &Client{
 		tetris: tetris.NewGame(),
-		// render: r,
+		render: r,
 		logger: l,
 		kbCh:   kb,
 		doneCh: make(chan bool),

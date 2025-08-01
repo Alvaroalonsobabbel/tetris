@@ -3,6 +3,7 @@ module tetris
 go 1.24.5
 
 require (
+	github.com/approvals/go-approval-tests v1.6.0
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6

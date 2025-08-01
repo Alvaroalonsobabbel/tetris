@@ -33,14 +33,17 @@ var (
 
 func main() {
 	evalOptions()
-	fmt.Print(hideCursor)
-	defer fmt.Print(showCursor)
-	client.New(&client.Options{
-		Logger:  initLogger(),
+	c, err := client.New(initLogger(), &client.Options{
 		NoGhost: noGhost,
 		Address: address,
 		Name:    name,
-	}).Start()
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Print(hideCursor)
+	defer fmt.Print(showCursor)
+	c.Start()
 }
 
 func initLogger() *slog.Logger {
