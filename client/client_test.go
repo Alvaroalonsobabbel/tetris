@@ -51,7 +51,6 @@ func TestClient(t *testing.T) {
 		render: render,
 		logger: slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		kbCh:   kCh,
-		doneCh: make(chan bool),
 		lobby:  atomic.Bool{},
 	}
 

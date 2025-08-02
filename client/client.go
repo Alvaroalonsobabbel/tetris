@@ -28,7 +28,6 @@ type Client struct {
 	render renderer
 	logger *slog.Logger
 	kbCh   <-chan keyboard.KeyEvent
-	doneCh chan bool
 	lobby  atomic.Bool
 }
 
@@ -52,7 +51,6 @@ func New(l *slog.Logger, o *Options) (*Client, error) {
 		render: r,
 		logger: l,
 		kbCh:   kb,
-		doneCh: make(chan bool),
 		lobby:  atomic.Bool{},
 	}, nil
 }
@@ -60,9 +58,10 @@ func New(l *slog.Logger, o *Options) (*Client, error) {
 func (c *Client) Start() {
 	c.lobby.Store(true)
 	c.render.lobby()
-	go c.listenKB()
-	<-c.doneCh
-	close(c.doneCh)
+	doneCh := make(chan bool)
+	go c.listenKB(doneCh)
+	<-doneCh
+	close(doneCh)
 }
 
 func (c *Client) listenTetris() {
@@ -75,7 +74,7 @@ func (c *Client) listenTetris() {
 	}
 }
 
-func (c *Client) listenKB() {
+func (c *Client) listenKB(doneCh chan bool) {
 quit:
 	for {
 		event, ok := <-c.kbCh
@@ -122,5 +121,5 @@ quit:
 			c.tetris.Action(a)
 		}
 	}
-	c.doneCh <- true
+	doneCh <- true
 }
