@@ -43,21 +43,18 @@ func (t *Tetromino) copy() *Tetromino {
 	if t == nil {
 		return nil
 	}
-	tc := &Tetromino{
+	grid := make([][]bool, len(t.Grid))
+	for i := range t.Grid {
+		grid[i] = make([]bool, len(t.Grid[i]))
+		copy(grid[i], t.Grid[i])
+	}
+	return &Tetromino{
+		Grid:   grid,
 		Shape:  t.Shape,
 		X:      t.X,
 		Y:      t.Y,
 		GhostY: t.GhostY,
-		rState: t.rState,
 	}
-	if t.Grid != nil {
-		tc.Grid = make([][]bool, len(t.Grid))
-		for i := range t.Grid {
-			tc.Grid[i] = make([]bool, len(t.Grid[i]))
-			copy(tc.Grid[i], t.Grid[i])
-		}
-	}
-	return tc
 }
 
 /*
