@@ -76,7 +76,7 @@ func (c *Client) listenTetris() {
 }
 
 func (c *Client) listenKB() {
-kbListener:
+quit:
 	for {
 		event, ok := <-c.kbCh
 		if !ok {
@@ -98,26 +98,28 @@ kbListener:
 			// case 'o':
 			// TODO: build online
 			case 'q':
-				break kbListener
+				break quit
 			default:
 				continue
 			}
 			c.lobby.Store(false)
 		} else {
+			var a tetris.Action
 			switch {
 			case event.Key == keyboard.KeyArrowDown || event.Rune == 's':
-				c.tetris.Action(tetris.MoveDown)
+				a = tetris.MoveDown
 			case event.Key == keyboard.KeyArrowLeft || event.Rune == 'a':
-				c.tetris.Action(tetris.MoveLeft)
+				a = tetris.MoveLeft
 			case event.Key == keyboard.KeyArrowRight || event.Rune == 'd':
-				c.tetris.Action(tetris.MoveRight)
+				a = tetris.MoveRight
 			case event.Key == keyboard.KeyArrowUp || event.Rune == 'e':
-				c.tetris.Action(tetris.RotateRight)
+				a = tetris.RotateRight
 			case event.Rune == 'q':
-				c.tetris.Action(tetris.RotateLeft)
+				a = tetris.RotateLeft
 			case event.Key == keyboard.KeySpace:
-				c.tetris.Action(tetris.DropDown)
+				a = tetris.DropDown
 			}
+			c.tetris.Action(a)
 		}
 	}
 	c.doneCh <- true
