@@ -106,6 +106,9 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 		for !gameInstance.isStart() {
 			select {
 			case <-timeOut:
+				// If player 1 times out waiting for opponent we clean up the gameInstance and waitingListID.
+				gameInstance.close()
+				t.waitListID = nil
 				return status.Error(codes.DeadlineExceeded, "timeout waiting for opponent")
 			default:
 				time.Sleep(10 * time.Millisecond)

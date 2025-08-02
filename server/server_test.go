@@ -54,6 +54,9 @@ func TestPlayTetris(t *testing.T) {
 		if !ok || st.Code() != codes.DeadlineExceeded || st.Message() != "timeout waiting for opponent" {
 			t.Errorf("expected DeadlineExceeded with message 'timeout waiting for opponent', got %v", err)
 		}
+		if server.waitListID != nil {
+			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitListID)
+		}
 	})
 }
 
