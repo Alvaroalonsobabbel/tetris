@@ -74,15 +74,20 @@ func (t *Tetris) action(a Action) {
 
 func (t *Tetris) rotate(a Action) {
 	// https://tetris.wiki/Super_Rotation_System
-	if t.Tetromino.Shape == O { // the O shape doesn't rotate.
+	if t.Tetromino.Shape == O {
+		// the O shape doesn't rotate.
 		return
 	}
 
-	// copies the grid from the current tetromino to test for collisions
-	test := make([][]bool, len(t.Tetromino.Grid))
+	// we create a test Tetromino with the current XY coordinates
+	// and a grid with the same dimensions of the current Tetromino.
+	test := &Tetromino{
+		Grid: make([][]bool, len(t.Tetromino.Grid)),
+		X:    t.Tetromino.X,
+		Y:    t.Tetromino.Y,
+	}
 	for i := range t.Tetromino.Grid {
-		test[i] = make([]bool, len(t.Tetromino.Grid[i]))
-		copy(test[i], t.Tetromino.Grid[i])
+		test.Grid[i] = make([]bool, len(t.Tetromino.Grid[i]))
 	}
 
 	// rotates the grid
@@ -91,19 +96,13 @@ func (t *Tetris) rotate(a Action) {
 		case RotateRight:
 			col := len(x) - ix - 1
 			for iy, y := range x {
-				test[iy][col] = y
+				test.Grid[iy][col] = y
 			}
 		case RotateLeft:
 			for iy, y := range x {
-				test[len(x)-iy-1][ix] = y
+				test.Grid[len(x)-iy-1][ix] = y
 			}
 		}
-	}
-
-	testTetromino := &Tetromino{
-		Grid: test,
-		X:    t.Tetromino.X,
-		Y:    t.Tetromino.Y,
 	}
 
 	wallKickMap := map[string]map[string][][]int{
@@ -155,8 +154,8 @@ func (t *Tetris) rotate(a Action) {
 	}
 
 	for _, v := range wallKickMap[rGroup][rCase] {
-		if !t.isCollision(v[0], v[1], testTetromino) {
-			t.Tetromino.Grid = test
+		if !t.isCollision(v[0], v[1], test) {
+			t.Tetromino.Grid = test.Grid
 			t.Tetromino.X += v[0]
 			t.Tetromino.Y += v[1]
 			switch a {
