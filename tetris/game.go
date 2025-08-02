@@ -162,8 +162,8 @@ func (g *Game) setTime() time.Duration {
 	// tetromino further down the stack. Based on https://tetris.wiki/Marathon
 	//
 	// Time = (0.8-((Level-1)*0.007))^(Level-1)
-	t := g.tetris.Level + g.remoteLines
-	seconds := math.Pow(0.8-float64(t-1)*0.007, float64(t-1))
+	t := g.tetris.Level + g.remoteLines - 1
+	seconds := math.Pow(0.8-float64(t)*0.007, float64(t))
 
 	return time.Duration(seconds * float64(time.Second))
 }
