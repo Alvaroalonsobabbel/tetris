@@ -23,17 +23,17 @@ type Ticker interface {
 	Stop()
 }
 
-type wrappedTicker struct {
+type timeTicker struct {
 	ticker *time.Ticker
 }
 
-func newWrappedTicker(d time.Duration) *wrappedTicker {
-	return &wrappedTicker{ticker: time.NewTicker(d)}
+func newTimeTicker() *timeTicker {
+	return &timeTicker{ticker: time.NewTicker(time.Hour)}
 }
 
-func (t *wrappedTicker) C() <-chan time.Time   { return t.ticker.C }
-func (t *wrappedTicker) Stop()                 { t.ticker.Stop() }
-func (t *wrappedTicker) Reset(d time.Duration) { t.ticker.Reset(d) }
+func (t *timeTicker) C() <-chan time.Time   { return t.ticker.C }
+func (t *timeTicker) Stop()                 { t.ticker.Stop() }
+func (t *timeTicker) Reset(d time.Duration) { t.ticker.Reset(d) }
 
 type Game struct {
 	updateCh    chan *Tetris
@@ -50,7 +50,7 @@ func NewGame() *Game {
 		actionCh: make(chan Action),
 		doneCh:   make(chan bool),
 		tetris:   newTetris(),
-		ticker:   newWrappedTicker(time.Hour),
+		ticker:   newTimeTicker(),
 	}
 }
 
