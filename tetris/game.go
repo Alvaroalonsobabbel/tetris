@@ -76,9 +76,8 @@ func (g *Game) GetUpdate() <-chan *Tetris {
 	return g.updateCh
 }
 
-func (g *Game) UpdateTimer(i int32) {
+func (g *Game) RemoteLines(i int32) {
 	g.remoteLines = int(i)
-	g.ticker.Reset(g.setTime())
 }
 
 func (g *Game) listen() {
