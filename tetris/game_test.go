@@ -51,4 +51,7 @@ func TestStartStop(t *testing.T) {
 	if !ticker.IsStop() {
 		t.Errorf("Expected ticker to be stopped")
 	}
+	if !te.GameOver {
+		t.Errorf("Expected game to be over")
+	}
 }

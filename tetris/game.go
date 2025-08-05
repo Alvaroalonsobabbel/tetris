@@ -65,6 +65,7 @@ func (g *Game) Start() {
 
 func (g *Game) Stop() {
 	g.ticker.Stop()
+	g.tetris.GameOver = true
 	g.doneCh <- true
 }
 
@@ -85,6 +86,7 @@ func (g *Game) listen() {
 	for {
 		select {
 		case <-g.ticker.C():
+			g.ticker.Reset(g.setTime())
 			if g.tetris.isCollision(0, -1, g.tetris.Tetromino) {
 				g.next()
 			} else {
