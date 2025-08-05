@@ -1,6 +1,8 @@
 package server
 
 import (
+	"errors"
+	"io"
 	"log"
 	"sync"
 	"tetris/proto"
@@ -22,6 +24,7 @@ const (
 type game struct {
 	p1Ch, p2Ch chan *proto.GameMessage
 	p1, p2     bool
+	closed     bool
 	mu         sync.Mutex
 }
 
@@ -49,12 +52,22 @@ func (g *game) ready(p int) {
 	}
 }
 
-func (g *game) close() {
-	if g != nil {
-		close(g.p1Ch)
-		close(g.p2Ch)
-		g = nil
+func (g *game) close(p int) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed {
+		return
 	}
+	log.Printf("Game instance %p has been closed by player%d", g, p)
+	close(g.p1Ch)
+	close(g.p2Ch)
+	g.closed = true
+}
+
+func (g *game) isClosed() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.closed
 }
 
 type tetrisServer struct {
@@ -72,7 +85,8 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	var gameInstance *game
 	var player int
 	var opponentCh chan *proto.GameMessage
-	defer gameInstance.close()
+	var doneCh = make(chan struct{})
+	defer close(doneCh)
 
 	// New game setup
 	if gameInstance == nil {
@@ -93,12 +107,13 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 		}
 		t.mu.Unlock()
 	}
+	defer gameInstance.close(player)
 
 	gm, err := stream.Recv()
 	if err != nil {
 		return status.Errorf(codes.Canceled, "error receiving first stream message: %v", err)
 	}
-	log.Printf("%s (player %d) is waiting to start game\n", gm.GetName(), player)
+	log.Printf("%s (player %d) is waiting to start game %p\n", gm.GetName(), player, gameInstance)
 
 	// Only player 1 waits for the opponent.
 	if player == player1 {
@@ -107,8 +122,8 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 			select {
 			case <-timeOut:
 				// If player 1 times out waiting for opponent we clean up the gameInstance and waitingListID.
-				gameInstance.close()
 				t.waitListID = nil
+				log.Printf("%s (player %d) timed out waiting to start game %p\n", gm.GetName(), player, gameInstance)
 				return status.Error(codes.DeadlineExceeded, "timeout waiting for opponent")
 			default:
 				time.Sleep(10 * time.Millisecond)
@@ -128,6 +143,11 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 		for {
 			gm, err := stream.Recv()
 			if err != nil {
+				if errors.Is(err, io.EOF) {
+					log.Printf("player%d disconnected from %p", player, gameInstance)
+					doneCh <- struct{}{}
+					return
+				}
 				st, ok := status.FromError(err)
 				if ok && st.Code() == codes.Canceled {
 					return
@@ -135,15 +155,28 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 				log.Printf("error receiving stream message in player%d: %v", player, err)
 				return
 			}
+			if gameInstance.isClosed() {
+				doneCh <- struct{}{}
+				return
+			}
 			ch <- gm
 		}
 	}()
 
 	// Receive from opponent's channel and send to stream.
-	for om := range opponentCh {
-		if err := stream.Send(om); err != nil {
-			return status.Errorf(codes.Canceled, "failed to send opponent message to P%d: %v", player, err)
+	for {
+		select {
+		case om, ok := <-opponentCh:
+			if !ok {
+				log.Printf("opponent channel closed for player%d in game %p", player, gameInstance)
+				return nil
+			}
+			if err := stream.Send(om); err != nil {
+				return status.Errorf(codes.Canceled, "failed to send opponent message to P%d: %v", player, err)
+			}
+		case <-doneCh:
+			log.Printf("player%d disconnected from %p", player, gameInstance)
+			return nil
 		}
 	}
-	return nil
 }
