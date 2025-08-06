@@ -65,8 +65,10 @@ func (g *Game) Start() {
 
 func (g *Game) Stop() {
 	g.ticker.Stop()
-	g.tetris.GameOver = true
-	g.doneCh <- true
+	if !g.tetris.GameOver {
+		g.tetris.GameOver = true
+		g.doneCh <- true
+	}
 }
 
 func (g *Game) Action(a Action) {
@@ -101,7 +103,7 @@ func (g *Game) listen() {
 		case <-g.doneCh:
 			return
 		}
-		if g.tetris != nil {
+		if g.tetris != nil && !g.tetris.GameOver {
 			g.updateCh <- g.tetris.read()
 		}
 	}
