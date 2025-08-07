@@ -125,10 +125,14 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 			select {
 			case <-timeOut:
 				// If player 1 times out waiting for opponent we clean up the gameInstance and waitingListID.
+				t.mu.Lock()
+				defer t.mu.Unlock()
 				t.waitListID = nil
 				log.Printf("%s (player %d) timed out waiting to start game %p\n", name, player, gameInstance)
 				return status.Error(codes.DeadlineExceeded, "timeout waiting for opponent")
 			case <-stream.Context().Done():
+				t.mu.Lock()
+				defer t.mu.Unlock()
 				t.waitListID = nil
 				log.Printf("%s (player %d) disconnected waiting to start game %p\n", name, player, gameInstance)
 				return status.Error(codes.Canceled, "player disconnected")
