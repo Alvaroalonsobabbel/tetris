@@ -2,8 +2,8 @@
 +--------------------+                              +--------------------+{{range $iy, $row := localStack . }}
 {{if eq $iy 0}}|{{range $cell := $row}}{{$cell}}{{end}}|       Terminal Tetris        |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 1}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
-{{if eq $iy 2}}|{{range $cell := $row}}{{$cell}}{{end}}|{{ $vs := vs $root.Name $root.Remote.GameParams.Name }}{{$vs}}|{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
-{{if eq $iy 3}}|{{range $cell := $row}}{{$cell}}{{end}}|      {{$root.Local.LinesClear}} :Lines Cleared: {{$root.Remote.Stack.LinesClear}}     |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 2}}|{{range $cell := $row}}{{$cell}}{{end}}|{{ $vs := vs $root.Name $root.Remote.Name }}{{$vs}}|{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 3}}|{{range $cell := $row}}{{$cell}}{{end}}|      {{$root.Local.LinesClear}} :Lines Cleared: {{$root.Remote.LinesClear}}     |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 4}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 5}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 6}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
@@ -26,8 +26,8 @@
 +--------------------+{{range $iy, $row := localStack .}}
 |{{range $cell := $row}}{{$cell}}{{end}}|
 {{- if eq $iy 0}}   Terminal Tetris{{- end -}}
-{{- if eq $iy 5}}           Level: {{$root.Local.Level}}{{- end -}}
-{{- if eq $iy 6}}   Lines Cleared: {{$root.Local.LinesClear}}{{- end -}}
+{{- if eq $iy 5}}           Level:  {{if and $root.Local $root.Local.Level}}{{end}}{{- end -}}
+{{- if eq $iy 6}}   Lines Cleared:  {{if and $root.Local $root.Local.LinesClear}}{{end}}{{- end -}}
 {{- if eq $iy 7}}            Next: {{ index $next 0 }}{{- end -}}
 {{- if eq $iy 8}}                  {{ index $next 1 }}{{- end -}}
 {{- if eq $iy 9}}                            {{ end -}}
