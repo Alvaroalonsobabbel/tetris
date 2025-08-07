@@ -58,6 +58,38 @@ func TestPlayTetris(t *testing.T) {
 			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitListID)
 		}
 	})
+
+	t.Run("cancel waiting for opponent", func(t *testing.T) {
+		server := &tetrisServer{waitTimeout: 150 * time.Millisecond}
+		lis, closer := testCustomServer(t, server)
+		defer closer()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		conn := testClient(t, lis)
+		game, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
+		if err != nil {
+			t.Errorf("error calling NewGame: %v", err)
+		}
+
+		if err := game.Send(&proto.GameMessage{Name: "test"}); err != nil {
+			t.Errorf("error sending: %v", err)
+			return
+		}
+
+		time.AfterFunc(50*time.Millisecond, func() { cancel() })
+		for err == nil {
+			_, err = game.Recv()
+		}
+		st, ok := status.FromError(err)
+		if !ok || st.Code() != codes.Canceled {
+			t.Errorf("expected Canceled with message 'player disconnected', got %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+		if server.waitListID != nil {
+			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitListID)
+		}
+	})
 }
 
 func testServer(t testing.TB) (*bufconn.Listener, func()) {
