@@ -3,6 +3,7 @@ package tetris
 import (
 	"math"
 	"slices"
+	"sync/atomic"
 	"time"
 )
 
@@ -41,7 +42,7 @@ type Game struct {
 	doneCh      chan bool
 	tetris      *Tetris
 	ticker      Ticker
-	remoteLines int
+	remoteLines atomic.Int32
 }
 
 func NewGame() *Game {
@@ -80,7 +81,7 @@ func (g *Game) GetUpdate() <-chan *Tetris {
 }
 
 func (g *Game) RemoteLines(i int32) {
-	g.remoteLines = int(i)
+	g.remoteLines.Store(i)
 }
 
 func (g *Game) listen() {
@@ -165,7 +166,7 @@ func (g *Game) setTime() time.Duration {
 	// tetromino further down the stack. Based on https://tetris.wiki/Marathon
 	//
 	// Time = (0.8-((Level-1)*0.007))^(Level-1)
-	t := g.tetris.Level + g.remoteLines - 1
+	t := g.tetris.Level + int(g.remoteLines.Load()) - 1
 	seconds := math.Pow(0.8-float64(t)*0.007, float64(t))
 
 	return time.Duration(seconds * float64(time.Second))
