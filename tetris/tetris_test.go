@@ -475,6 +475,17 @@ func TestToStack(t *testing.T) {
 	}
 }
 
+func TestRead(t *testing.T) {
+	tetris := NewTestTetris(J)
+	tetris.action(MoveDown)
+	if reflect.DeepEqual(tetris, tetris.read()) {
+		t.Errorf("tetris and tetris.read() content should be equal. wanted %v, got %v", tetris, tetris.read())
+	}
+	if tetris == tetris.read() {
+		t.Errorf("tetris and tetris.read() pointers should be different. wanted %p, got %p", tetris, tetris.read())
+	}
+}
+
 func TestRandomBag(t *testing.T) {
 	t.Run("bag should contain 7 elements. after drawing it should contain one less", func(t *testing.T) {
 		t.Parallel()
@@ -581,12 +592,17 @@ func TestSetTetromino(t *testing.T) {
 
 func TestIsGameOver(t *testing.T) {
 	tetris := NewTestTetris(J)
-	tetris.NexTetromino = newJ()
 	if tetris.isGameOver() {
 		t.Error("expected isGameOver() to be false")
+	}
+	if tetris.GameOver {
+		t.Error("expected GameOver to be false")
 	}
 	tetris.Stack[19][3] = J
 	if !tetris.isGameOver() {
 		t.Error("expected isGameOver() to be true")
+	}
+	if !tetris.GameOver {
+		t.Error("expected GameOver to be true")
 	}
 }

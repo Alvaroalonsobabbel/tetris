@@ -8,12 +8,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"tetris/terminal"
-
-	"github.com/eiannone/keyboard"
+	"tetris/client"
 )
 
-const VERSION = "v0.0.2"
+const VERSION = "v0.0.3"
 
 const (
 	hideCursor = "\033[2J\033[?25l" // also clear screen
@@ -24,27 +22,28 @@ const (
 	debugFlag   = "debug"
 	versionFlag = "version"
 	noGhostFlag = "noghost"
+	nameFlag    = "name"
+	addressFlag = "address"
 )
 
 var (
-	debug   bool
-	noGhost bool
+	debug, noGhost bool
+	name, address  string
 )
 
 func main() {
 	evalOptions()
-	l := initLogger()
-	defer func() {
-		if r := recover(); r != nil {
-			l.Error("Recovered from panic", slog.Any("error", r))
-			if err := keyboard.Close(); err != nil {
-				l.Error("failed to close the keyboard", slog.String("error", err.Error()))
-			}
-		}
-	}()
+	c, err := client.New(initLogger(), &client.Options{
+		NoGhost: noGhost,
+		Address: address,
+		Name:    name,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Print(hideCursor)
 	defer fmt.Print(showCursor)
-	terminal.New(os.Stdout, l, noGhost).Start()
+	c.Start()
 }
 
 func initLogger() *slog.Logger {
@@ -68,6 +67,8 @@ func evalOptions() {
 	flag.BoolFunc(versionFlag, "Prints version", version)
 	flag.BoolVar(&debug, debugFlag, false, "Enables debugging into ~/.tetrisLog")
 	flag.BoolVar(&noGhost, noGhostFlag, false, "Disables Ghost Piece")
+	flag.StringVar(&name, nameFlag, "noName", "Current player's name")
+	flag.StringVar(&address, addressFlag, "127.0.0.1:9000", "Tetris server address")
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}

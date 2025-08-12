@@ -13,12 +13,8 @@
 package tetris
 
 import (
-	"math"
 	"math/rand"
-
 	"slices"
-	"sync"
-	"time"
 )
 
 type Tetris struct {
@@ -34,7 +30,8 @@ type Tetris struct {
 	Level      int
 	LinesClear int
 
-	mu  sync.RWMutex
+	GameOver bool
+
 	bag *bag
 }
 
@@ -48,16 +45,12 @@ func newTetris() *Tetris {
 	return t
 }
 
-// NewTestTetris creates a new Tetris struct with a test tetromino.
-func NewTestTetris(shape Shape) *Tetris {
-	return &Tetris{
-		Tetromino: shapeMap[shape](),
-		Stack:     emptyStack(),
-		Level:     1,
-	}
-}
-
 func (t *Tetris) action(a Action) {
+	if t.Tetromino == nil {
+		// between toStack() and next round's setTetromino() Tetromino is nil.
+		// we return here to avoid user commands to cause panic.
+		return
+	}
 	switch a {
 	case MoveLeft:
 		if !t.isCollision(-1, 0, t.Tetromino) {
@@ -81,15 +74,20 @@ func (t *Tetris) action(a Action) {
 
 func (t *Tetris) rotate(a Action) {
 	// https://tetris.wiki/Super_Rotation_System
-	if t.Tetromino.Shape == O { // the O shape doesn't rotate.
+	if t.Tetromino.Shape == O {
+		// the O shape doesn't rotate.
 		return
 	}
 
-	// copies the grid from the current tetromino to test for collisions
-	test := make([][]bool, len(t.Tetromino.Grid))
+	// we create a test Tetromino with the current XY coordinates
+	// and a grid with the same dimensions of the current Tetromino.
+	test := &Tetromino{
+		Grid: make([][]bool, len(t.Tetromino.Grid)),
+		X:    t.Tetromino.X,
+		Y:    t.Tetromino.Y,
+	}
 	for i := range t.Tetromino.Grid {
-		test[i] = make([]bool, len(t.Tetromino.Grid[i]))
-		copy(test[i], t.Tetromino.Grid[i])
+		test.Grid[i] = make([]bool, len(t.Tetromino.Grid[i]))
 	}
 
 	// rotates the grid
@@ -98,42 +96,13 @@ func (t *Tetris) rotate(a Action) {
 		case RotateRight:
 			col := len(x) - ix - 1
 			for iy, y := range x {
-				test[iy][col] = y
+				test.Grid[iy][col] = y
 			}
 		case RotateLeft:
 			for iy, y := range x {
-				test[len(x)-iy-1][ix] = y
+				test.Grid[len(x)-iy-1][ix] = y
 			}
 		}
-	}
-
-	testTetromino := &Tetromino{
-		Grid: test,
-		X:    t.Tetromino.X,
-		Y:    t.Tetromino.Y,
-	}
-
-	wallKickMap := map[string]map[string][][]int{
-		"all": {
-			"0>R": [][]int{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
-			"R>0": [][]int{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
-			"R>2": [][]int{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
-			"2>R": [][]int{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
-			"2>L": [][]int{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
-			"L>2": [][]int{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}},
-			"L>0": [][]int{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}},
-			"0>L": [][]int{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
-		},
-		"I": {
-			"0>R": [][]int{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
-			"R>0": [][]int{{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
-			"R>2": [][]int{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
-			"2>R": [][]int{{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}},
-			"2>L": [][]int{{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
-			"L>2": [][]int{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
-			"L>0": [][]int{{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}},
-			"0>L": [][]int{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
-		},
 	}
 
 	var rCase string
@@ -162,8 +131,8 @@ func (t *Tetris) rotate(a Action) {
 	}
 
 	for _, v := range wallKickMap[rGroup][rCase] {
-		if !t.isCollision(v[0], v[1], testTetromino) {
-			t.Tetromino.Grid = test
+		if !t.isCollision(v[0], v[1], test) {
+			t.Tetromino.Grid = test.Grid
 			t.Tetromino.X += v[0]
 			t.Tetromino.Y += v[1]
 			switch a {
@@ -247,7 +216,9 @@ func (t *Tetris) setLevel() {
 }
 
 func (t *Tetris) isGameOver() bool {
-	return t.isCollision(0, 0, t.NexTetromino)
+	// we consider game over when next tetromino spawn position would have a collision on the stack.
+	t.GameOver = t.isCollision(0, 0, t.NexTetromino)
+	return t.GameOver
 }
 
 func (t *Tetris) dropDownDelta() int {
@@ -256,6 +227,26 @@ func (t *Tetris) dropDownDelta() int {
 		delta--
 	}
 	return delta + 1
+}
+
+func (t *Tetris) read() *Tetris {
+	// read() returns a copy of the current Tetris status that's safe to read concurrently.
+	var stack [][]Shape
+	if t.Stack != nil {
+		stack = make([][]Shape, len(t.Stack))
+		for i := range t.Stack {
+			stack[i] = make([]Shape, len(t.Stack[i]))
+			copy(stack[i], t.Stack[i])
+		}
+	}
+	return &Tetris{
+		Stack:        stack,
+		Tetromino:    t.Tetromino.copy(),
+		NexTetromino: t.NexTetromino.copy(),
+		Level:        t.Level,
+		LinesClear:   t.LinesClear,
+		GameOver:     t.GameOver,
+	}
 }
 
 type bag struct {
@@ -304,19 +295,25 @@ func emptyStack() [][]Shape {
 	return e
 }
 
-func setTime(level int) time.Duration {
-	// setTime() sets the duration for the ticker that will progress the
-	// tetromino further down the stack. Based on https://tetris.wiki/Marathon
-	//
-	// Time = (0.8-((Level-1)*0.007))^(Level-1)
-
-	switch {
-	case level < 1:
-		level = 1
-	case level > 20:
-		level = 20
-	}
-	seconds := math.Pow(0.8-float64(level-1)*0.007, float64(level-1))
-
-	return time.Duration(seconds * float64(time.Second))
+var wallKickMap = map[string]map[string][][]int{
+	"all": {
+		"0>R": [][]int{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
+		"R>0": [][]int{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
+		"R>2": [][]int{{0, 0}, {1, 0}, {1, -1}, {0, 2}, {1, 2}},
+		"2>R": [][]int{{0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2}},
+		"2>L": [][]int{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
+		"L>2": [][]int{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}},
+		"L>0": [][]int{{0, 0}, {-1, 0}, {-1, -1}, {0, 2}, {-1, 2}},
+		"0>L": [][]int{{0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2}},
+	},
+	"I": {
+		"0>R": [][]int{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
+		"R>0": [][]int{{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
+		"R>2": [][]int{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
+		"2>R": [][]int{{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}},
+		"2>L": [][]int{{0, 0}, {2, 0}, {-1, 0}, {2, 1}, {-1, -2}},
+		"L>2": [][]int{{0, 0}, {-2, 0}, {1, 0}, {-2, -1}, {1, 2}},
+		"L>0": [][]int{{0, 0}, {1, 0}, {-2, 0}, {1, -2}, {-2, 1}},
+		"0>L": [][]int{{0, 0}, {-1, 0}, {2, 0}, {-1, 2}, {2, -1}},
+	},
 }

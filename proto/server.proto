@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option go_package = "github.com/Alvaroalonsobabbel/proto";
+
+service TetrisService {
+    rpc PlayTetris(stream GameMessage) returns (stream GameMessage) {}
+}
+
+message GameMessage {
+    string name = 1;
+    bool is_started = 2;
+    bool is_game_over = 3;
+    int32 lines_clear = 4;
+    Stack stack = 5;
+}
+
+message Stack {
+    repeated Row rows = 1;
+}
+
+message Row {
+    repeated string cells = 1;
+}
