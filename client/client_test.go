@@ -25,6 +25,7 @@ func (m *mockTetris) Stop()                            { m.stop = true }
 func (m *mockTetris) GetUpdate() <-chan *tetris.Tetris { return m.updateCh }
 func (m *mockTetris) Start()                           { m.start = true; m.updateCh <- &tetris.Tetris{} }
 func (m *mockTetris) Action(a tetris.Action)           { m.action = a; m.updateCh <- &tetris.Tetris{} }
+func (m *mockTetris) RemoteLines(int32)                {}
 func (m *mockTetris) sendGameOver()                    { m.updateCh <- &tetris.Tetris{GameOver: true} }
 
 type mockRender struct {
@@ -33,11 +34,11 @@ type mockRender struct {
 	remoteCount int
 }
 
-func (m *mockRender) lobby()                    { m.lobbyCount++ }
 func (m *mockRender) remote(*proto.GameMessage) { m.remoteCount++ }
+func (m *mockRender) reset()                    {}
 func (m *mockRender) local(t *tetris.Tetris) {
 	m.localCount++
-	if t.GameOver {
+	if t != nil && t.GameOver {
 		m.lobbyCount++
 	}
 }
@@ -58,11 +59,7 @@ func TestClient(t *testing.T) {
 	wg.Add(1)
 	go func() { cl.Start(); wg.Done() }()
 	time.Sleep(10 * time.Millisecond)
-	if render.lobbyCount != 1 {
-		t.Errorf("wanted render.lobby() to be called at the beginning of the game once, got %d", render.lobbyCount)
-	}
-
-	wantLocalCount := 1
+	wantLocalCount := 2
 
 	// 'p' would call tetris.Start(), set lobby to false and render.local() once.
 	kCh <- keyboard.KeyEvent{Rune: 'p'}
@@ -114,7 +111,7 @@ func TestClient(t *testing.T) {
 	if render.localCount != wantLocalCount {
 		t.Errorf("wanted render.local() to be %d times, got %d", wantLocalCount, render.localCount)
 	}
-	if render.lobbyCount != 2 {
+	if render.lobbyCount != 1 {
 		t.Errorf("wanted render.lobby() to be called 2 times, got %d", render.lobbyCount)
 	}
 	if !cl.lobby.Load() {

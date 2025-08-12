@@ -5,7 +5,7 @@
 |                    |
 |                    |
 |                    |           Level: 1
-|                    |   Lines Cleared: 0
+|                    |   Lines Cleared: 
 |                    |            Next:   [7m[35m[][0m    
 |                    |                  [7m[35m[][0m[7m[35m[][0m[7m[35m[][0m  
 |                    |                            
@@ -19,4 +19,25 @@
 |                    |     Rotate Left: q
 |        []          |       Drop Down: space
 |      [][][]        |            Exit: ctrl-c
-+--------------------+[10;9H+--------------------------------------+[11;9H|      Welcome to Terminal Tetris      |[12;9H|                                      |[13;9H|      (p)lay   (o)nline   (q)uit      |[14;9H+--------------------------------------+[11;9H|             Game Over :)             |
++--------------------+[H+--------------------+
+|        [7m[35m[][0m          |   [1mTerminal Tetris[0m
+|      [7m[35m[][0m[7m[35m[][0m[7m[35m[][0m        |
+|                    |
+|                    |
+|                    |
+|                    |           Level: 1
+|                    |   Lines Cleared: 
+|                    |            Next:   [7m[35m[][0m    
+|                    |                  [7m[35m[][0m[7m[35m[][0m[7m[35m[][0m  
+|                    |                            
+|                    |                            
+|                    |                            
+|                    |                            
+|                    |           Right: →, d
+|                    |            Left: ←, a
+|                    |            Down: ↓, s
+|                    |    Rotate Right: ↑, e
+|                    |     Rotate Left: q
+|        []          |       Drop Down: space
+|      [][][]        |            Exit: ctrl-c
++--------------------+[10;9H+--------------------------------------+[11;9H|      Welcome to Terminal Tetris      |[12;9H|                                      |[13;9H|      (p)lay   (o)nline   (q)uit      |[14;9H+--------------------------------------+[11;9H|             You Lose :)              |

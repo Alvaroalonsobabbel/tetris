@@ -77,6 +77,19 @@ func TestLocalStack(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("want %v, got %v", want, got)
 	}
+
+	t.Run("localStack with nil tetris returns emtpy spaces", func(t *testing.T) {
+		want := [20][10]string{}
+		for y := range 20 {
+			for x := range 10 {
+				want[y][x] = "  "
+			}
+		}
+		got := localStack(nil)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("want %v, got %v", want, got)
+		}
+	})
 }
 
 func TestRemoteStack(t *testing.T) {
@@ -100,6 +113,19 @@ func TestRemoteStack(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("want %v, got %v", want, got)
 	}
+
+	t.Run("remoteStack with nil tetris returns emtpy spaces", func(t *testing.T) {
+		want := [20][10]string{}
+		for y := range 20 {
+			for x := range 10 {
+				want[y][x] = "  "
+			}
+		}
+		got := remoteStack(nil)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("want %v, got %v", want, got)
+		}
+	})
 }
 
 func TestNextPiece(t *testing.T) {
@@ -120,6 +146,13 @@ func TestNextPiece(t *testing.T) {
 			}
 		})
 	}
+	t.Run("nextPiece with nil tetris returns emtpy spaces", func(t *testing.T) {
+		want := []string{"        ", "        "}
+		got := nextPiece(nil)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("want %v, got %v", want, got)
+		}
+	})
 }
 
 func TestStack2Proto(t *testing.T) {

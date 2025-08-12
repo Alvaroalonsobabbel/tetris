@@ -3,6 +3,8 @@ package client
 import (
 	"fmt"
 	"log/slog"
+	"os"
+	"sync"
 	"sync/atomic"
 	"tetris/proto"
 	"tetris/tetris"
@@ -15,20 +17,30 @@ type tetrisGame interface {
 	GetUpdate() <-chan *tetris.Tetris
 	Action(tetris.Action)
 	Stop()
+	RemoteLines(i int32)
 }
 
+// type remoter interface {
+// 	start()
+// 	stop()
+// 	getUpdate() <-chan *proto.GameMessage
+// 	sendUpdate(*tetris.Tetris)
+// }
+
 type renderer interface {
-	lobby()
 	local(*tetris.Tetris)
 	remote(*proto.GameMessage)
+	reset()
 }
 
 type Client struct {
 	tetris tetrisGame
 	render renderer
+	remote *remote
 	logger *slog.Logger
 	kbCh   <-chan keyboard.KeyEvent
 	lobby  atomic.Bool
+	wait   atomic.Bool
 }
 
 type Options struct {
@@ -49,59 +61,62 @@ func New(l *slog.Logger, o *Options) (*Client, error) {
 	return &Client{
 		tetris: tetris.NewGame(),
 		render: r,
+		remote: newRemoteClient(l, o),
 		logger: l,
 		kbCh:   kb,
-		lobby:  atomic.Bool{},
 	}, nil
 }
 
 func (c *Client) Start() {
 	c.lobby.Store(true)
-	c.render.lobby()
-	doneCh := make(chan bool)
-	go c.listenKB(doneCh)
-	<-doneCh
-	close(doneCh)
+	c.render.local(nil)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go c.listenKB(&wg)
+	wg.Wait()
+	c.remote.close()
 }
 
-func (c *Client) listenTetris() {
-	for u := range c.tetris.GetUpdate() {
-		c.render.local(u)
-		if u.GameOver {
-			c.lobby.Store(true)
-			return
-		}
-	}
-}
-
-func (c *Client) listenKB(doneCh chan bool) {
-quit:
+func (c *Client) listenKB(wg *sync.WaitGroup) {
+	defer wg.Done()
 	for {
 		event, ok := <-c.kbCh
 		if !ok {
 			c.logger.Error("Keyboard events channel closed unexpectedly")
-			break
+			return
 		}
 		if event.Err != nil {
 			c.logger.Error("keysEvents error", slog.String("error", event.Err.Error()))
-			break
+			return
 		}
 		if event.Key == keyboard.KeyCtrlC {
-			break
+			return
 		}
-		if c.lobby.Load() {
+		// TODO: create state system
+		if c.lobby.Load() { // nolint:gocritic
 			switch event.Rune {
 			case 'p':
 				go c.listenTetris()
 				c.tetris.Start()
-			// case 'o':
-			// TODO: build online
+			case 'o':
+				go c.remoteStart()
+				c.wait.Store(true)
 			case 'q':
-				break quit
+				return
 			default:
 				continue
 			}
 			c.lobby.Store(false)
+		} else if c.wait.Load() {
+			switch event.Rune {
+			case 'c':
+				c.remote.close()
+				c.wait.Store(false)
+				c.lobby.Store(true)
+				c.render.local(nil)
+			default:
+				continue
+			}
 		} else {
 			var a tetris.Action
 			switch {
@@ -121,5 +136,84 @@ quit:
 			c.tetris.Action(a)
 		}
 	}
-	doneCh <- true
+}
+
+func (c *Client) listenTetris() {
+	c.render.reset()
+	for u := range c.tetris.GetUpdate() {
+		c.render.local(u)
+		if u.GameOver {
+			c.lobby.Store(true)
+			return
+		}
+	}
+}
+
+func (c *Client) listenOnline() {
+	defer func() {
+		c.lobby.Store(true)
+		c.wait.Store(false)
+		c.remote.close()
+		c.tetris.Stop()
+	}()
+	c.render.reset()
+	for {
+		select {
+		case lu, ok := <-c.tetris.GetUpdate():
+			if !ok {
+				c.logger.Error("listenOnline tetris update channel closed unexpectedly")
+				return
+			}
+			c.render.local(lu)
+			if err := c.remote.send(lu); err != nil {
+				c.logger.Debug("listenOnline closed through remote.send()")
+				return
+			}
+			if lu.GameOver {
+				c.logger.Debug("listenOnline closed through local.GameOver")
+				c.remote.close()
+				return
+			}
+		case ru, ok := <-c.remote.rcv():
+			if !ok {
+				c.logger.Error("listenOnline remote update channel closed unexpectedly")
+				return
+			}
+			c.tetris.RemoteLines(ru.LinesClear)
+			c.render.remote(ru)
+			if ru.GetIsGameOver() {
+				c.logger.Debug("listenOnline closed through remote.GetIsGameOver()")
+				return
+			}
+		}
+	}
+}
+
+func (c *Client) remoteStart() {
+	err := c.remote.start()
+	if err != nil {
+		c.logger.Error("failed to start remote", slog.String("error", err.Error()))
+		return
+	}
+
+	fmt.Fprint(os.Stdout, "\033[11;9H|        waiting for player...         |")
+	fmt.Fprint(os.Stdout, "\033[13;9H|               (c)ancel               |")
+
+	for {
+		ru, ok := <-c.remote.rcv()
+		if !ok {
+			c.logger.Error("listenOnline remote update channel closed unexpectedly")
+			c.wait.Store(false)
+			c.lobby.Store(true)
+			fmt.Fprint(os.Stdout, "\033[12;9H|        theres no one to play with         |")
+			return
+		}
+		if ru.GetIsStarted() {
+			break
+		}
+	}
+
+	c.wait.Store(false)
+	go c.listenOnline()
+	c.tetris.Start()
 }

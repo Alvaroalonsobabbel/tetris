@@ -22,7 +22,8 @@ const (
 	Red     = "31"
 	Magenta = "35"
 
-	resetPos = "\033[H" // Reset cursor position to 0,0
+	resetPos = "\033[H"        // Reset cursor position to 0,0
+	clearScr = "\033[2J\033[H" // Clears the screen
 )
 
 //go:embed "layout.tmpl"
@@ -68,11 +69,14 @@ func newRender(l *slog.Logger, ng bool, name string) (*render, error) {
 	}, nil
 }
 
+func (r *render) reset() {
+	fmt.Fprint(r.writer, clearScr)
+	r.Local = nil
+	r.Remote = nil
+}
+
 func (r *render) lobby() {
-	if r.Local == nil {
-		// first time loading lobby we pre-load a new tetris game.
-		r.local(tetris.NewTestTetris(tetris.J))
-	}
+	r.print()
 	fmt.Fprint(r.writer, "\033[10;9H+--------------------------------------+")
 	fmt.Fprint(r.writer, "\033[11;9H|      Welcome to Terminal Tetris      |")
 	fmt.Fprint(r.writer, "\033[12;9H|                                      |")
@@ -81,22 +85,39 @@ func (r *render) lobby() {
 }
 
 func (r *render) local(t *tetris.Tetris) {
-	r.Local = t
-	fmt.Fprint(r.writer, resetPos)
-	if err := r.template.Execute(r.writer, r.templateData); err != nil {
-		r.logger.Error("unable to execute template in local()", slog.String("error", err.Error()))
+	if t == nil {
+		r.lobby()
+		return
 	}
+	r.Local = t
+	r.print()
 	if t.GameOver {
 		r.lobby()
-		fmt.Fprint(r.writer, "\033[11;9H|             Game Over :)             |")
+		fmt.Fprint(r.writer, "\033[11;9H|             You Lose :)              |")
 		return
 	}
 }
 
-func (r *render) remote(*proto.GameMessage) {
-	// fmt.Fprint(c.writer, "\033[11;9H|             Game Over :)             |")
-	// fmt.Fprint(t.writer, "\033[13;9H|       connecting to server...        |")
-	// fmt.Fprint(t.writer, "\033[12;9H|       something went wrong :(        |")
+func (r *render) remote(g *proto.GameMessage) {
+	r.Remote = g
+	if !g.GetIsStarted() {
+		fmt.Fprint(r.writer, "\033[12;9H|        waiting for player...         |")
+		fmt.Fprint(r.writer, "\033[13;9H|               (c)ancel               |")
+		return
+	}
+	r.print()
+	if g.GetIsGameOver() {
+		r.lobby()
+		fmt.Fprint(r.writer, "\033[11;9H|              You Win :)              |")
+		return
+	}
+}
+
+func (r *render) print() {
+	fmt.Fprint(r.writer, resetPos)
+	if err := r.template.Execute(r.writer, r.templateData); err != nil {
+		r.logger.Error("unable to execute template in local()", slog.String("error", err.Error()))
+	}
 }
 
 func loadTemplate() (*template.Template, error) {
@@ -115,19 +136,16 @@ func loadTemplate() (*template.Template, error) {
 }
 
 func localStack(t *templateData) [20][10]string {
-	if t.Local == nil {
-		return [20][10]string{}
-	}
 	rendered := [20][10]string{}
-
-	// renders the stack
 	for y := range 20 {
 		for x := range 10 {
 			out := "  "
-			v := t.Local.Stack[y][x]
-			c, ok := colorMap[v]
-			if ok {
-				out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
+			if t != nil && t.Local != nil {
+				v := t.Local.Stack[y][x]
+				c, ok := colorMap[v]
+				if ok {
+					out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
+				}
 			}
 			// we deduct 19 from the 'y' index because the range over function
 			// in the tempalate can only range over from 0 upwards. we do the
@@ -137,7 +155,7 @@ func localStack(t *templateData) [20][10]string {
 	}
 
 	// renders the current tetromino if exist
-	if t.Local.Tetromino != nil {
+	if t != nil && t.Local != nil && t.Local.Tetromino != nil {
 		for iy, y := range t.Local.Tetromino.Grid {
 			for ix, x := range y {
 				if x {
@@ -154,13 +172,14 @@ func localStack(t *templateData) [20][10]string {
 
 func remoteStack(t *templateData) [20][10]string {
 	rendered := [20][10]string{}
-
 	for y := range 20 {
 		for x := range 10 {
 			out := "  "
-			c, ok := colorMap[tetris.Shape(t.Remote.Stack.Rows[y].Cells[x])]
-			if ok {
-				out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
+			if t != nil && t.Remote != nil && t.Remote.Stack != nil {
+				c, ok := colorMap[tetris.Shape(t.Remote.Stack.Rows[y].Cells[x])]
+				if ok {
+					out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
+				}
 			}
 			// we deduct 19 from the 'y' index because the range over function
 			// in the tempalate can only range over from 0 upwards. we do the
@@ -172,15 +191,14 @@ func remoteStack(t *templateData) [20][10]string {
 }
 
 func nextPiece(t *templateData) []string {
-	if t.Local == nil {
-		return nil
-	}
 	var rendered []string
 	for i := range 2 {
 		row := []string{"  ", "  ", "  ", "  "}
-		for iv, v := range t.Local.NexTetromino.Grid[i] {
-			if v {
-				row[iv] = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", colorMap[t.Local.NexTetromino.Shape])
+		if t != nil && t.Local != nil {
+			for iv, v := range t.Local.NexTetromino.Grid[i] {
+				if v {
+					row[iv] = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", colorMap[t.Local.NexTetromino.Shape])
+				}
 			}
 		}
 		rendered = append(rendered, strings.Join(row, ""))
