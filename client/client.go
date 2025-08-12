@@ -155,6 +155,7 @@ func (c *Client) listenOnline() {
 		c.wait.Store(false)
 		c.remote.close()
 		c.tetris.Stop()
+		// TODO: lobby should be rendered when opponent exits the game abruptly
 	}()
 	c.render.reset()
 	for {
