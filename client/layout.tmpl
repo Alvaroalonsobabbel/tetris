@@ -26,8 +26,8 @@
 +--------------------+{{range $iy, $row := localStack .}}
 |{{range $cell := $row}}{{$cell}}{{end}}|
 {{- if eq $iy 0}}   Terminal Tetris{{- end -}}
-{{- if eq $iy 5}}           Level:  {{if and $root.Local $root.Local.Level}}{{end}}{{- end -}}
-{{- if eq $iy 6}}   Lines Cleared:  {{if and $root.Local $root.Local.LinesClear}}{{end}}{{- end -}}
+{{- if eq $iy 5}}           Level:  {{if and $root.Local $root.Local.Level}}{{$root.Local.Level}}{{end}}{{- end -}}
+{{- if eq $iy 6}}   Lines Cleared:  {{if and $root.Local $root.Local.LinesClear}}{{$root.Local.LinesClear}}{{end}}{{- end -}}
 {{- if eq $iy 7}}            Next: {{ index $next 0 }}{{- end -}}
 {{- if eq $iy 8}}                  {{ index $next 1 }}{{- end -}}
 {{- if eq $iy 9}}                            {{ end -}}
