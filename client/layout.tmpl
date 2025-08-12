@@ -2,8 +2,8 @@
 +--------------------+                              +--------------------+{{range $iy, $row := localStack . }}
 {{if eq $iy 0}}|{{range $cell := $row}}{{$cell}}{{end}}|       Terminal Tetris        |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 1}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
-{{if eq $iy 2}}|{{range $cell := $row}}{{$cell}}{{end}}|{{ $vs := vs $root.Name $root.Remote.Name }}{{$vs}}|{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
-{{if eq $iy 3}}|{{range $cell := $row}}{{$cell}}{{end}}|      {{$root.Local.LinesClear}} :Lines Cleared: {{$root.Remote.LinesClear}}     |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 2}}|{{range $cell := $row}}{{$cell}}{{end}}|  {{ printf "%9.9s <- vs -> %-9.9s" $root.Name $root.Remote.Name }}|{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 3}}|{{range $cell := $row}}{{$cell}}{{end}}|    {{printf "%2d" $root.Local.LinesClear}} :Lines Cleared: {{printf "%2d" $root.Remote.LinesClear}}     |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 4}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 5}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 6}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
