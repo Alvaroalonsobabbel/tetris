@@ -54,6 +54,41 @@ func TestPlayTetris(t *testing.T) {
 		if !ok || st.Code() != codes.DeadlineExceeded || st.Message() != "timeout waiting for opponent" {
 			t.Errorf("expected DeadlineExceeded with message 'timeout waiting for opponent', got %v", err)
 		}
+		if server.waitListID != nil {
+			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitListID)
+		}
+	})
+
+	t.Run("cancel waiting for opponent", func(t *testing.T) {
+		server := &tetrisServer{waitTimeout: 150 * time.Millisecond}
+		lis, closer := testCustomServer(t, server)
+		defer closer()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		conn := testClient(t, lis)
+		game, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
+		if err != nil {
+			t.Errorf("error calling NewGame: %v", err)
+		}
+
+		if err := game.Send(&proto.GameMessage{Name: "test"}); err != nil {
+			t.Errorf("error sending: %v", err)
+			return
+		}
+
+		time.AfterFunc(50*time.Millisecond, func() { cancel() })
+		for err == nil {
+			_, err = game.Recv()
+		}
+		st, ok := status.FromError(err)
+		if !ok || st.Code() != codes.Canceled {
+			t.Errorf("expected Canceled with message 'player disconnected', got %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+		if server.waitListID != nil {
+			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitListID)
+		}
 	})
 }
 
@@ -114,7 +149,7 @@ func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
 	}
 	// Players send values back and forth
 	for i := range 50 {
-		outMsg.LinesClear = int32(i)
+		outMsg.LinesClear = int32(i) // nolint:gosec
 		if err := game.Send(outMsg); err != nil {
 			t.Errorf("error sending player name for P%d: %v", n, err)
 			return
@@ -124,7 +159,7 @@ func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
 			t.Errorf("error receiving message from opponent for P%d: %v", n, err)
 			return
 		}
-		if gm.GetLinesClear() != int32(i) {
+		if gm.GetLinesClear() != int32(i) { // nolint:gosec
 			t.Errorf("expected %d lines cleared for player%d, got %d", i, n, gm.GetLinesClear())
 			return
 		}

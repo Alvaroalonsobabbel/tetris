@@ -2,3 +2,4 @@ log*
 .DS_Store
 bin/tetris
 demo.cast
+.zed

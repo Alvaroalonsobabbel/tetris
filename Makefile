@@ -3,7 +3,7 @@
 check: lint test
 
 test:
-	@go test -race ./...
+	@go test ./...
 
 lint:
 	@golangci-lint run

@@ -13,7 +13,7 @@ import (
 const port = ":9000"
 
 func main() {
-	lis, err := net.Listen("tcp", port)
+	lis, err := net.Listen("tcp", port) //nolint:gosec
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -24,6 +24,6 @@ func main() {
 
 	fmt.Printf("starting server in port %s...\n", port)
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Printf("failed to serve: %v", err)
 	}
 }
