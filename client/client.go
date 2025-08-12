@@ -1,7 +1,9 @@
 package client
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"sync"
@@ -10,6 +12,10 @@ import (
 	"tetris/tetris"
 
 	"github.com/eiannone/keyboard"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 type tetrisGame interface {
@@ -20,13 +26,6 @@ type tetrisGame interface {
 	RemoteLines(i int32)
 }
 
-// type remoter interface {
-// 	start()
-// 	stop()
-// 	getUpdate() <-chan *proto.GameMessage
-// 	sendUpdate(*tetris.Tetris)
-// }
-
 type renderer interface {
 	local(*tetris.Tetris)
 	remote(*proto.GameMessage)
@@ -34,13 +33,13 @@ type renderer interface {
 }
 
 type Client struct {
-	tetris tetrisGame
-	render renderer
-	remote *remote
-	logger *slog.Logger
-	kbCh   <-chan keyboard.KeyEvent
-	lobby  atomic.Bool
-	wait   atomic.Bool
+	tetris  tetrisGame
+	render  renderer
+	options *Options
+	logger  *slog.Logger
+	kbCh    <-chan keyboard.KeyEvent
+	lobby   atomic.Bool
+	wait    atomic.Bool
 }
 
 type Options struct {
@@ -59,11 +58,11 @@ func New(l *slog.Logger, o *Options) (*Client, error) {
 		return nil, fmt.Errorf("failed to open keyboard: %w", err)
 	}
 	return &Client{
-		tetris: tetris.NewGame(),
-		render: r,
-		remote: newRemoteClient(l, o),
-		logger: l,
-		kbCh:   kb,
+		tetris:  tetris.NewGame(),
+		render:  r,
+		options: o,
+		logger:  l,
+		kbCh:    kb,
 	}, nil
 }
 
@@ -74,11 +73,12 @@ func (c *Client) Start() {
 	wg.Add(1)
 	go c.listenKB(&wg)
 	wg.Wait()
-	c.remote.close()
 }
 
 func (c *Client) listenKB(wg *sync.WaitGroup) {
 	defer wg.Done()
+	var ctx context.Context
+	var cancel context.CancelFunc
 	for {
 		event, ok := <-c.kbCh
 		if !ok {
@@ -99,7 +99,8 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 				go c.listenTetris()
 				c.tetris.Start()
 			case 'o':
-				go c.remoteStart()
+				ctx, cancel = context.WithCancel(context.Background())
+				go c.listenOnlineTetris(ctx)
 				c.wait.Store(true)
 			case 'q':
 				return
@@ -110,9 +111,7 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 		} else if c.wait.Load() {
 			switch event.Rune {
 			case 'c':
-				c.remote.close()
-				c.wait.Store(false)
-				c.lobby.Store(true)
+				cancel()
 				c.render.local(nil)
 			default:
 				continue
@@ -149,15 +148,86 @@ func (c *Client) listenTetris() {
 	}
 }
 
-func (c *Client) listenOnline() {
+func (c *Client) listenOnlineTetris(ctx context.Context) {
 	defer func() {
+		c.render.local(nil)
+		c.tetris.Stop()
 		c.lobby.Store(true)
 		c.wait.Store(false)
-		c.remote.close()
-		c.tetris.Stop()
-		// TODO: lobby should be rendered when opponent exits the game abruptly
 	}()
+
+	// Start connection
+	conn, err := grpc.NewClient(c.options.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		c.logger.Error("unable to create gRPC client", slog.String("error", err.Error()))
+		return
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			c.logger.Error("unable to close gRPC client", slog.String("error", err.Error()))
+		}
+	}()
+	stream, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
+	if err != nil {
+		c.logger.Error("unable to create gRPC PlayTetris stream", slog.String("error", err.Error()))
+		return
+	}
+
+	// Set receiver channel
+	rcvCh := make(chan *proto.GameMessage)
+	doneCh := make(chan struct{})
+	go func() {
+		defer func() {
+			doneCh <- struct{}{}
+			close(doneCh)
+			close(rcvCh)
+		}()
+		for {
+			rcv, err := stream.Recv()
+			if err != nil {
+				if err == io.EOF {
+					c.logger.Debug("stream.Recv() closed with EOF", slog.String("msg", err.Error()))
+					return
+				}
+				st, ok := status.FromError(err)
+				if ok && st.Code() == codes.Canceled {
+					c.logger.Debug("stream.Recv() closed with Cancel", slog.String("msg", st.Message()))
+				} else if ok && st.Code() == codes.DeadlineExceeded {
+					c.logger.Debug("stream.Recv() closed with DeadlineExceeded", slog.String("msg", st.Message()))
+				} else {
+					c.logger.Error("stream.Recv() unable to receive message", slog.String("error", err.Error()))
+				}
+				return
+			}
+			rcvCh <- rcv
+		}
+	}()
+
+	// Send initial message, wait for game to start.
+	if err := stream.Send(&proto.GameMessage{Name: c.options.Name}); err != nil {
+		c.logger.Error("unable to send initial message", slog.String("error", err.Error()))
+		return
+	}
+	// TODO: implement a better rendered for the lobby
+	fmt.Fprint(os.Stdout, "\033[11;9H|        waiting for player...         |")
+	fmt.Fprint(os.Stdout, "\033[13;9H|               (c)ancel               |")
+start:
+	for {
+		select {
+		case rcv := <-rcvCh:
+			if rcv.GetIsStarted() {
+				break start
+			}
+		case <-doneCh:
+			return
+		}
+	}
+
+	// start game
+	c.wait.Store(false)
 	c.render.reset()
+	go c.tetris.Start()
+
 	for {
 		select {
 		case lu, ok := <-c.tetris.GetUpdate():
@@ -166,16 +236,30 @@ func (c *Client) listenOnline() {
 				return
 			}
 			c.render.local(lu)
-			if err := c.remote.send(lu); err != nil {
-				c.logger.Debug("listenOnline closed through remote.send()")
+			if err := stream.Send(&proto.GameMessage{
+				Name:       c.options.Name,
+				IsGameOver: lu.GameOver,
+				IsStarted:  true,
+				LinesClear: int32(lu.LinesClear), // nolint:gosec
+				Stack:      stack2Proto(lu),
+			}); err != nil {
+				if err == io.EOF {
+					c.logger.Debug("send() opponent closed the game with EOF", slog.String("debug", err.Error()))
+					return
+				}
+				st, ok := status.FromError(err)
+				if ok && st.Code() == codes.Canceled {
+					c.logger.Debug("send() opponent closed the game with Cancel", slog.String("debug", err.Error()))
+					return
+				}
+				c.logger.Error("send() unable to send message", slog.String("error", err.Error()))
 				return
 			}
 			if lu.GameOver {
 				c.logger.Debug("listenOnline closed through local.GameOver")
-				c.remote.close()
 				return
 			}
-		case ru, ok := <-c.remote.rcv():
+		case ru, ok := <-rcvCh:
 			if !ok {
 				c.logger.Error("listenOnline remote update channel closed unexpectedly")
 				return
@@ -186,35 +270,11 @@ func (c *Client) listenOnline() {
 				c.logger.Debug("listenOnline closed through remote.GetIsGameOver()")
 				return
 			}
+		case _, ok := <-doneCh:
+			if !ok {
+				c.logger.Error("listenOnline doneCh was closed")
+				return
+			}
 		}
 	}
-}
-
-func (c *Client) remoteStart() {
-	err := c.remote.start()
-	if err != nil {
-		c.logger.Error("failed to start remote", slog.String("error", err.Error()))
-		return
-	}
-
-	fmt.Fprint(os.Stdout, "\033[11;9H|        waiting for player...         |")
-	fmt.Fprint(os.Stdout, "\033[13;9H|               (c)ancel               |")
-
-	for {
-		ru, ok := <-c.remote.rcv()
-		if !ok {
-			c.logger.Error("listenOnline remote update channel closed unexpectedly")
-			c.wait.Store(false)
-			c.lobby.Store(true)
-			fmt.Fprint(os.Stdout, "\033[12;9H|        theres no one to play with         |")
-			return
-		}
-		if ru.GetIsStarted() {
-			break
-		}
-	}
-
-	c.wait.Store(false)
-	go c.listenOnline()
-	c.tetris.Start()
 }
