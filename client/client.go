@@ -100,6 +100,7 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 				c.tetris.Start()
 			case 'o':
 				ctx, cancel = context.WithCancel(context.Background())
+				defer cancel()
 				go c.listenOnlineTetris(ctx)
 				c.wait.Store(true)
 			case 'q':
@@ -190,7 +191,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 					return
 				}
 				st, ok := status.FromError(err)
-				if ok && st.Code() == codes.Canceled {
+				if ok && st.Code() == codes.Canceled { //nolint: gocritic
 					c.logger.Debug("stream.Recv() closed with Cancel", slog.String("msg", st.Message()))
 				} else if ok && st.Code() == codes.DeadlineExceeded {
 					c.logger.Debug("stream.Recv() closed with DeadlineExceeded", slog.String("msg", st.Message()))
