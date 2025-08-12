@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"reflect"
@@ -171,30 +170,5 @@ func TestStack2Proto(t *testing.T) {
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("want %v, got %v", want, got)
-	}
-}
-
-func TestVS(t *testing.T) {
-	tests := []struct {
-		lName, rName, want string
-	}{
-		{
-			"123456789", "123456789", " 123456789 <- vs -> 123456789 ",
-		},
-		{
-			"1234567890", "12345678", " 123456789 <- vs -> 12345678  ",
-		},
-		{
-			"12345678", "12345678", "  12345678 <- vs -> 12345678  ",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("lName %s and rName %s should render %s", tt.lName, tt.rName, tt.want), func(t *testing.T) {
-			got := vs(tt.lName, tt.rName)
-			if tt.want != got {
-				t.Errorf("want %v, got %v", tt.want, got)
-			}
-		})
 	}
 }

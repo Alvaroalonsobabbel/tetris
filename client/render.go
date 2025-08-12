@@ -125,7 +125,6 @@ func loadTemplate() (*template.Template, error) {
 		"localStack":  localStack,
 		"remoteStack": remoteStack,
 		"nextPiece":   nextPiece,
-		"vs":          vs,
 	}
 
 	// we use the console raw so new lines don't automatically transform into carriage return
@@ -204,26 +203,6 @@ func nextPiece(t *templateData) []string {
 		rendered = append(rendered, strings.Join(row, ""))
 	}
 	return rendered
-}
-
-func vs(lName, rName string) string {
-	maxL := 9
-	l := len(lName)
-	switch {
-	case l > maxL:
-		lName = lName[:maxL]
-	case l < maxL:
-		lName = strings.Repeat(" ", maxL-len(lName)) + lName
-	}
-
-	r := len(rName)
-	switch {
-	case r > maxL:
-		rName = rName[:maxL]
-	case r < maxL:
-		rName += strings.Repeat(" ", maxL-len(rName))
-	}
-	return fmt.Sprintf(" %s <- vs -> %s ", lName, rName)
 }
 
 func stack2Proto(t *tetris.Tetris) *proto.Stack {

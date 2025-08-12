@@ -11,7 +11,7 @@ import (
 	"tetris/client"
 )
 
-const VERSION = "v0.0.3"
+const VERSION = "v0.0.4"
 
 const (
 	hideCursor = "\033[2J\033[?25l" // also clear screen
