@@ -152,9 +152,9 @@ func (c *Client) listenTetris() {
 func (c *Client) listenOnlineTetris(ctx context.Context) {
 	defer func() {
 		c.render.local(nil)
-		c.tetris.Stop()
 		c.lobby.Store(true)
 		c.wait.Store(false)
+		c.tetris.Stop()
 	}()
 
 	// Start connection
@@ -220,6 +220,7 @@ start:
 				break start
 			}
 		case <-doneCh:
+			c.logger.Debug("start for loop doneCh was closed")
 			return
 		}
 	}
@@ -271,11 +272,9 @@ start:
 				c.logger.Debug("listenOnline closed through remote.GetIsGameOver()")
 				return
 			}
-		case _, ok := <-doneCh:
-			if !ok {
-				c.logger.Error("listenOnline doneCh was closed")
-				return
-			}
+		case <-doneCh:
+			c.logger.Debug("listenOnline doneCh was closed")
+			return
 		}
 	}
 }

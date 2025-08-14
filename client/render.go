@@ -90,12 +90,12 @@ func (r *render) local(t *tetris.Tetris) {
 		return
 	}
 	r.Local = t
-	r.print()
 	if t.GameOver {
 		r.lobby()
 		fmt.Fprint(r.writer, "\033[11;9H|             You Lose :)              |")
 		return
 	}
+	r.print()
 }
 
 func (r *render) remote(g *proto.GameMessage) {
@@ -105,12 +105,12 @@ func (r *render) remote(g *proto.GameMessage) {
 		fmt.Fprint(r.writer, "\033[13;9H|               (c)ancel               |")
 		return
 	}
-	r.print()
 	if g.GetIsGameOver() {
 		r.lobby()
 		fmt.Fprint(r.writer, "\033[11;9H|              You Win :)              |")
 		return
 	}
+	r.print()
 }
 
 func (r *render) print() {
