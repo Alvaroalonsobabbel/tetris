@@ -49,7 +49,6 @@ func NewGame() *Game {
 	return &Game{
 		updateCh: make(chan *Tetris),
 		actionCh: make(chan Action),
-		doneCh:   make(chan bool),
 		tetris:   newTetris(),
 		ticker:   newTimeTicker(),
 	}
@@ -68,6 +67,8 @@ func (g *Game) Stop() {
 	g.ticker.Stop()
 	if !g.tetris.GameOver {
 		g.tetris.GameOver = true
+	}
+	if g.doneCh != nil {
 		g.doneCh <- true
 	}
 }
@@ -85,6 +86,8 @@ func (g *Game) RemoteLines(i int32) {
 }
 
 func (g *Game) listen() {
+	g.doneCh = make(chan bool)
+	defer close(g.doneCh)
 	g.ticker.Reset(g.setTime())
 	for {
 		select {
@@ -117,7 +120,7 @@ func (g *Game) next() {
 	g.tetris.setLevel()
 	if g.tetris.isGameOver() {
 		g.updateCh <- g.tetris.read()
-		g.doneCh <- true
+		g.Stop()
 		return
 	}
 	g.tetris.setTetromino()
