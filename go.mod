@@ -1,6 +1,6 @@
 module tetris
 
-go 1.25
+go 1.24.6
 
 require (
 	github.com/approvals/go-approval-tests v1.6.0
