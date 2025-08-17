@@ -173,6 +173,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 		c.logger.Error("unable to create gRPC PlayTetris stream", slog.String("error", err.Error()))
 		return
 	}
+	defer stream.CloseSend() //nolint: errcheck
 
 	// Set receiver channel
 	rcvCh := make(chan *proto.GameMessage)
