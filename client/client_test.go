@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"tetris/proto"
 	"tetris/tetris"
@@ -52,7 +51,7 @@ func TestClient(t *testing.T) {
 		render: render,
 		logger: slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		kbCh:   kCh,
-		lobby:  atomic.Bool{},
+		state:  &state{current: lobby},
 	}
 
 	var wg sync.WaitGroup
@@ -67,8 +66,8 @@ func TestClient(t *testing.T) {
 	if !tts.start {
 		t.Errorf("wanted tetris.Start() to be called, got %t", tts.start)
 	}
-	if cl.lobby.Load() {
-		t.Errorf("wanted lobby to be false after 'p' key press")
+	if cl.state.get() != playing {
+		t.Errorf("wanted client state to be 'playing' after 'p' key press")
 	}
 	if render.localCount != wantLocalCount {
 		t.Errorf("wanted render.local() to be called once, got %d", render.localCount)
@@ -114,7 +113,7 @@ func TestClient(t *testing.T) {
 	if render.lobbyCount != 1 {
 		t.Errorf("wanted render.lobby() to be called 2 times, got %d", render.lobbyCount)
 	}
-	if !cl.lobby.Load() {
+	if cl.state.get() != lobby {
 		t.Errorf("wanted lobby to be true")
 	}
 

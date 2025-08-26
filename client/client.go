@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"sync"
-	"sync/atomic"
 	"tetris/proto"
 	"tetris/tetris"
 
@@ -17,6 +16,31 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
+
+type clientState int
+
+const (
+	lobby clientState = iota
+	waiting
+	playing
+)
+
+type state struct {
+	current clientState
+	mu      sync.Mutex
+}
+
+func (s *state) get() clientState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.current
+}
+
+func (s *state) set(c clientState) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.current = c
+}
 
 type tetrisGame interface {
 	Start()
@@ -38,8 +62,7 @@ type Client struct {
 	options *Options
 	logger  *slog.Logger
 	kbCh    <-chan keyboard.KeyEvent
-	lobby   atomic.Bool
-	wait    atomic.Bool
+	state   *state
 }
 
 type Options struct {
@@ -63,11 +86,11 @@ func New(l *slog.Logger, o *Options) (*Client, error) {
 		options: o,
 		logger:  l,
 		kbCh:    kb,
+		state:   &state{current: lobby},
 	}, nil
 }
 
 func (c *Client) Start() {
-	c.lobby.Store(true)
 	c.render.local(nil)
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -92,24 +115,24 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 		if event.Key == keyboard.KeyCtrlC {
 			return
 		}
-		// TODO: create state system
-		if c.lobby.Load() { // nolint:gocritic
+		switch c.state.get() {
+		case lobby:
 			switch event.Rune {
 			case 'p':
 				go c.listenTetris()
+				c.state.set(playing)
 				c.tetris.Start()
 			case 'o':
 				ctx, cancel = context.WithCancel(context.Background())
 				defer cancel()
 				go c.listenOnlineTetris(ctx)
-				c.wait.Store(true)
+				c.state.set(waiting)
 			case 'q':
 				return
 			default:
 				continue
 			}
-			c.lobby.Store(false)
-		} else if c.wait.Load() {
+		case waiting:
 			switch event.Rune {
 			case 'c':
 				cancel()
@@ -117,7 +140,7 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 			default:
 				continue
 			}
-		} else {
+		case playing:
 			var a tetris.Action
 			switch {
 			case event.Key == keyboard.KeyArrowDown || event.Rune == 's':
@@ -143,7 +166,7 @@ func (c *Client) listenTetris() {
 	for u := range c.tetris.GetUpdate() {
 		c.render.local(u)
 		if u.GameOver {
-			c.lobby.Store(true)
+			c.state.set(lobby)
 			return
 		}
 	}
@@ -152,8 +175,7 @@ func (c *Client) listenTetris() {
 func (c *Client) listenOnlineTetris(ctx context.Context) {
 	defer func() {
 		c.render.local(nil)
-		c.lobby.Store(true)
-		c.wait.Store(false)
+		c.state.set(lobby)
 		c.tetris.Stop()
 	}()
 
@@ -227,7 +249,7 @@ start:
 	}
 
 	// start game
-	c.wait.Store(false)
+	c.state.set(playing)
 	c.render.reset()
 	go c.tetris.Start()
 
