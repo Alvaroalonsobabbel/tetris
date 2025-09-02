@@ -55,3 +55,4 @@ func TestStartStop(t *testing.T) {
 		t.Errorf("Expected game to be over")
 	}
 }
+

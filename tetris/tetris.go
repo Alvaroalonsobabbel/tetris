@@ -29,6 +29,10 @@ type Tetris struct {
 
 	Level      int
 	LinesClear int
+	Points     int
+
+	ComboText    string
+	ComboVisible bool
 
 	GameOver bool
 
@@ -245,6 +249,9 @@ func (t *Tetris) read() *Tetris {
 		NexTetromino: t.NexTetromino.copy(),
 		Level:        t.Level,
 		LinesClear:   t.LinesClear,
+		Points:       t.Points,
+		ComboText:    t.ComboText,
+		ComboVisible: t.ComboVisible,
 		GameOver:     t.GameOver,
 	}
 }

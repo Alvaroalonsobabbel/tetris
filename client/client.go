@@ -43,9 +43,10 @@ type Client struct {
 }
 
 type Options struct {
-	NoGhost bool
-	Address string
-	Name    string
+	NoGhost   bool
+	Address   string
+	Name      string
+	ComboMode bool
 }
 
 func New(l *slog.Logger, o *Options) (*Client, error) {
@@ -58,7 +59,7 @@ func New(l *slog.Logger, o *Options) (*Client, error) {
 		return nil, fmt.Errorf("failed to open keyboard: %w", err)
 	}
 	return &Client{
-		tetris:  tetris.NewGame(),
+		tetris:  tetris.NewGame(o.ComboMode),
 		render:  r,
 		options: o,
 		logger:  l,
@@ -244,6 +245,7 @@ start:
 				IsGameOver: lu.GameOver,
 				IsStarted:  true,
 				LinesClear: int32(lu.LinesClear), // nolint:gosec
+				Points:     int32(lu.Points),     // nolint:gosec
 				Stack:      stack2Proto(lu),
 			}); err != nil {
 				if err == io.EOF {
