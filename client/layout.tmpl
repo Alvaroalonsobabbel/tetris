@@ -4,12 +4,12 @@
 {{if eq $iy 1}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 2}}|{{range $cell := $row}}{{$cell}}{{end}}|  {{ printf "%9.9s <- vs -> %-9.9s" $root.Name $root.Remote.Name }}|{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 3}}|{{range $cell := $row}}{{$cell}}{{end}}|    {{printf "%2d" $root.Local.LinesClear}} :Lines Cleared: {{printf "%2d" $root.Remote.LinesClear}}     |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
-{{if eq $iy 4}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 4}}|{{range $cell := $row}}{{$cell}}{{end}}|     {{printf "%3d" $root.Local.Points}} :Points: {{printf "%3d" $root.Remote.Points}}         |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 5}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 6}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
-{{if eq $iy 7}}|{{range $cell := $row}}{{$cell}}{{end}}|            Next: {{ index $next 0 }}    |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
-{{if eq $iy 8}}|{{range $cell := $row}}{{$cell}}{{end}}|                  {{ index $next 1 }}    |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
-{{if eq $iy 9}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 7}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 8}}|{{range $cell := $row}}{{$cell}}{{end}}|            Next: {{ index $next 0 }}    |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
+{{if eq $iy 9}}|{{range $cell := $row}}{{$cell}}{{end}}|                  {{ index $next 1 }}    |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 10}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 11}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
 {{if eq $iy 12}}|{{range $cell := $row}}{{$cell}}{{end}}|                              |{{range $rCell := index $rs $iy}}{{$rCell}}{{end}}|{{- end -}}
@@ -26,11 +26,14 @@
 +--------------------+{{range $iy, $row := localStack .}}
 |{{range $cell := $row}}{{$cell}}{{end}}|
 {{- if eq $iy 0}}   Terminal Tetris{{- end -}}
-{{- if eq $iy 5}}           Level: {{if and $root.Local $root.Local.Level}}{{$root.Local.Level}}{{end}}{{- end -}}
-{{- if eq $iy 6}}   Lines Cleared: {{if and $root.Local $root.Local.LinesClear}}{{$root.Local.LinesClear}}{{end}}{{- end -}}
-{{- if eq $iy 7}}            Next: {{ index $next 0 }}{{- end -}}
-{{- if eq $iy 8}}                  {{ index $next 1 }}{{- end -}}
-{{- if eq $iy 9}}                            {{ end -}}
+{{- if eq $iy 2}}           Level: {{if and $root.Local $root.Local.Level}}{{$root.Local.Level}}{{end}}{{- end -}}
+{{- if eq $iy 3}}   Lines Cleared: {{if and $root.Local $root.Local.LinesClear}}{{$root.Local.LinesClear}}{{end}}{{- end -}}
+{{- if eq $iy 4}}          Points: {{if and $root.Local $root.Local.Points}}{{$root.Local.Points}}{{end}}{{- end -}}
+{{- if eq $iy 5}}{{if and $root.Local $root.Local.ComboVisible}}                            {{else}}                            {{end}}{{- end -}}
+{{- if eq $iy 6}}{{if and $root.Local $root.Local.ComboVisible}}         {{$root.Local.ComboText}}{{else}}                            {{end}}{{- end -}}
+{{- if eq $iy 7}}{{if and $root.Local $root.Local.ComboVisible}}                            {{else}}                            {{end}}{{- end -}}
+{{- if eq $iy 8}}            Next: {{ index $next 0 }}{{- end -}}
+{{- if eq $iy 9}}                  {{ index $next 1 }}{{- end -}}
 {{- if eq $iy 10}}                            {{ end -}}
 {{- if eq $iy 11}}                            {{ end -}}
 {{- if eq $iy 12}}                            {{ end -}}

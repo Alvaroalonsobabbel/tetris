@@ -12,6 +12,7 @@ message GameMessage {
     bool is_game_over = 3;
     int32 lines_clear = 4;
     Stack stack = 5;
+    int32 points = 6;
 }
 
 message Stack {

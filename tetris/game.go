@@ -43,6 +43,7 @@ type Game struct {
 	tetris      *Tetris
 	ticker      Ticker
 	remoteLines atomic.Int32
+	comboTimer  *time.Timer
 }
 
 func NewGame() *Game {
@@ -65,6 +66,9 @@ func (g *Game) Start() {
 
 func (g *Game) Stop() {
 	g.ticker.Stop()
+	if g.comboTimer != nil {
+		g.comboTimer.Stop()
+	}
 	if !g.tetris.GameOver {
 		g.tetris.GameOver = true
 	}
@@ -162,6 +166,59 @@ func (g *Game) clearLines() {
 	}
 
 	g.tetris.LinesClear += len(l)
+	// Combo scoring: points = 10 * lines_cleared * lines_cleared
+	// 1 line = 10 points, 2 lines = 40 points, 3 lines = 90 points, 4 lines = 160 points
+	linesCleared := len(l)
+	comboPoints := 10 * linesCleared * linesCleared
+	g.tetris.Points += comboPoints
+
+	// Set combo notification for 2+ lines
+	if linesCleared >= 2 {
+		g.tetris.ComboText = g.generateComboText(linesCleared)
+		g.tetris.ComboVisible = true
+		
+		// Clear any existing timer
+		if g.comboTimer != nil {
+			g.comboTimer.Stop()
+		}
+		
+		// Start blinking animation: 3 blinks over ~1.2 seconds
+		g.startComboBlinking(0)
+	}
+}
+
+func (g *Game) startComboBlinking(blinkCount int) {
+	if blinkCount >= 6 {
+		// Animation complete after 3 full blinks (6 state changes)
+		g.tetris.ComboVisible = false
+		g.updateCh <- g.tetris.read()
+		return
+	}
+	
+	// Toggle visibility and schedule next blink
+	g.tetris.ComboVisible = !g.tetris.ComboVisible
+	g.updateCh <- g.tetris.read()
+	
+	g.comboTimer = time.AfterFunc(200*time.Millisecond, func() {
+		g.startComboBlinking(blinkCount + 1)
+	})
+}
+
+func (g *Game) generateComboText(linesCleared int) string {
+	switch linesCleared {
+	case 2:
+		return ">> COMBO x2 <<"
+	
+	case 3:
+		return "*** COMBO x3 ***"
+	
+	case 4:
+		return "=[[[ COMBO x4 ]]]="
+	
+	default:
+		// Should never happen in standard Tetris (max 4 lines)
+		return ""
+	}
 }
 
 func (g *Game) setTime() time.Duration {

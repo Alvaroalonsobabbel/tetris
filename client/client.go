@@ -244,6 +244,7 @@ start:
 				IsGameOver: lu.GameOver,
 				IsStarted:  true,
 				LinesClear: int32(lu.LinesClear), // nolint:gosec
+				Points:     int32(lu.Points),     // nolint:gosec
 				Stack:      stack2Proto(lu),
 			}); err != nil {
 				if err == io.EOF {
