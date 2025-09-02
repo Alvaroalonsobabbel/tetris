@@ -44,14 +44,16 @@ type Game struct {
 	ticker      Ticker
 	remoteLines atomic.Int32
 	comboTimer  *time.Timer
+	comboMode   bool
 }
 
-func NewGame() *Game {
+func NewGame(comboMode bool) *Game {
 	return &Game{
-		updateCh: make(chan *Tetris),
-		actionCh: make(chan Action),
-		tetris:   newTetris(),
-		ticker:   newTimeTicker(),
+		updateCh:  make(chan *Tetris),
+		actionCh:  make(chan Action),
+		tetris:    newTetris(),
+		ticker:    newTimeTicker(),
+		comboMode: comboMode,
 	}
 }
 
@@ -166,24 +168,30 @@ func (g *Game) clearLines() {
 	}
 
 	g.tetris.LinesClear += len(l)
-	// Combo scoring: points = 10 * lines_cleared * lines_cleared
-	// 1 line = 10 points, 2 lines = 40 points, 3 lines = 90 points, 4 lines = 160 points
 	linesCleared := len(l)
-	comboPoints := 10 * linesCleared * linesCleared
-	g.tetris.Points += comboPoints
+	
+	if g.comboMode {
+		// Combo scoring: points = 10 * lines_cleared * lines_cleared
+		// 1 line = 10 points, 2 lines = 40 points, 3 lines = 90 points, 4 lines = 160 points
+		comboPoints := 10 * linesCleared * linesCleared
+		g.tetris.Points += comboPoints
 
-	// Set combo notification for 2+ lines
-	if linesCleared >= 2 {
-		g.tetris.ComboText = g.generateComboText(linesCleared)
-		g.tetris.ComboVisible = true
-		
-		// Clear any existing timer
-		if g.comboTimer != nil {
-			g.comboTimer.Stop()
+		// Set combo notification for 2+ lines
+		if linesCleared >= 2 {
+			g.tetris.ComboText = g.generateComboText(linesCleared)
+			g.tetris.ComboVisible = true
+			
+			// Clear any existing timer
+			if g.comboTimer != nil {
+				g.comboTimer.Stop()
+			}
+			
+			// Start blinking animation: 3 blinks over ~1.2 seconds
+			g.startComboBlinking(0)
 		}
-		
-		// Start blinking animation: 3 blinks over ~1.2 seconds
-		g.startComboBlinking(0)
+	} else {
+		// Original simple scoring: 10 points per line
+		g.tetris.Points += linesCleared * 10
 	}
 }
 

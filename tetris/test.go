@@ -36,11 +36,12 @@ func (m *MockTicker) IsStop() bool {
 func NewTestGame(t *Tetris) (*Game, *MockTicker) {
 	ticker := newMockTicker()
 	return &Game{
-		updateCh: make(chan *Tetris),
-		actionCh: make(chan Action),
-		doneCh:   make(chan bool),
-		tetris:   t,
-		ticker:   ticker,
+		updateCh:  make(chan *Tetris),
+		actionCh:  make(chan Action),
+		doneCh:    make(chan bool),
+		tetris:    t,
+		ticker:    ticker,
+		comboMode: false, // Default to false for tests
 	}, ticker
 }
 

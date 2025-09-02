@@ -19,24 +19,26 @@ const (
 	logFile    = ".tetrisLog"
 
 	// Option Flags.
-	debugFlag   = "debug"
-	versionFlag = "version"
-	noGhostFlag = "noghost"
-	nameFlag    = "name"
-	addressFlag = "address"
+	debugFlag    = "debug"
+	versionFlag  = "version"
+	noGhostFlag  = "noghost"
+	nameFlag     = "name"
+	addressFlag  = "address"
+	comboModeFlag = "combo-mode"
 )
 
 var (
-	debug, noGhost bool
-	name, address  string
+	debug, noGhost, comboMode bool
+	name, address             string
 )
 
 func main() {
 	evalOptions()
 	c, err := client.New(initLogger(), &client.Options{
-		NoGhost: noGhost,
-		Address: address,
-		Name:    name,
+		NoGhost:   noGhost,
+		Address:   address,
+		Name:      name,
+		ComboMode: comboMode,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -67,6 +69,7 @@ func evalOptions() {
 	flag.BoolFunc(versionFlag, "Prints version", version)
 	flag.BoolVar(&debug, debugFlag, false, "Enables debugging into ~/.tetrisLog")
 	flag.BoolVar(&noGhost, noGhostFlag, false, "Disables Ghost Piece")
+	flag.BoolVar(&comboMode, comboModeFlag, false, "Enables combo scoring and notifications")
 	flag.StringVar(&name, nameFlag, "noName", "Current player's name")
 	flag.StringVar(&address, addressFlag, "127.0.0.1:9000", "Tetris server address")
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
