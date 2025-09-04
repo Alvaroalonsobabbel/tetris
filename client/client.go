@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"sync"
 	"tetris/proto"
 	"tetris/tetris"
@@ -174,7 +173,6 @@ func (c *Client) listenTetris() {
 
 func (c *Client) listenOnlineTetris(ctx context.Context) {
 	defer func() {
-		c.render.local(nil)
 		c.state.set(lobby)
 		c.tetris.Stop()
 	}()
@@ -232,9 +230,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 		c.logger.Error("unable to send initial message", slog.String("error", err.Error()))
 		return
 	}
-	// TODO: implement a better rendered for the lobby
-	fmt.Fprint(os.Stdout, "\033[11;9H|        waiting for player...         |")
-	fmt.Fprint(os.Stdout, "\033[13;9H|               (c)ancel               |")
+	c.render.remote(&proto.GameMessage{})
 start:
 	for {
 		select {
