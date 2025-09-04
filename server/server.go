@@ -30,8 +30,8 @@ type game struct {
 
 func newGame() *game {
 	return &game{
-		p1Ch: make(chan *proto.GameMessage),
-		p2Ch: make(chan *proto.GameMessage),
+		p1Ch: make(chan *proto.GameMessage, 10),
+		p2Ch: make(chan *proto.GameMessage, 10),
 	}
 }
 
@@ -87,7 +87,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	var name string
 	var opponentCh chan *proto.GameMessage
 	var doneCh = make(chan struct{})
-	defer close(doneCh)
+	// defer close(doneCh)
 
 	// New game setup
 	if gameInstance == nil {
@@ -147,15 +147,23 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 
 	// Receive msg from stream and send to opponent's channel.
 	go func() {
+		defer func() {
+			select {
+			case doneCh <- struct{}{}:
+			default:
+			}
+		}()
 		ch := gameInstance.p1Ch
 		if player == player2 {
 			ch = gameInstance.p2Ch
 		}
+		var gm *proto.GameMessage
+		var err error
 		for {
-			gm, err := stream.Recv()
+			gm, err = stream.Recv()
 			if err != nil {
 				if errors.Is(err, io.EOF) {
-					doneCh <- struct{}{}
+					// doneCh <- struct{}{}
 					return
 				}
 				st, ok := status.FromError(err)
@@ -166,7 +174,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 				return
 			}
 			if gameInstance.isClosed() {
-				doneCh <- struct{}{}
+				// doneCh <- struct{}{}
 				return
 			}
 			ch <- gm
@@ -174,9 +182,11 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	}()
 
 	// Receive from opponent's channel and send to stream.
+	var om *proto.GameMessage
+	var ok bool
 	for {
 		select {
-		case om, ok := <-opponentCh:
+		case om, ok = <-opponentCh:
 			if !ok {
 				log.Printf("opponent channel closed for %s (player%d) in game %p", name, player, gameInstance)
 				return nil
@@ -184,6 +194,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 			if err := stream.Send(om); err != nil {
 				return status.Errorf(codes.Canceled, "failed to send opponent message for %s (player%d): %v", name, player, err)
 			}
+			// om = nil
 		case <-doneCh:
 			log.Printf("%s (player%d) disconnected from %p", name, player, gameInstance)
 			return nil
