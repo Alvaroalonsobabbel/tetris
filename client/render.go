@@ -22,8 +22,7 @@ const (
 	Red     = "31"
 	Magenta = "35"
 
-	resetPos = "\033[H"        // Reset cursor position to 0,0
-	clearScr = "\033[2J\033[H" // Clears the screen
+	resetPos = "\033[H" // Reset cursor position to 0,0
 )
 
 //go:embed "layout.tmpl"
@@ -70,7 +69,6 @@ func newRender(l *slog.Logger, ng bool, name string) (*render, error) {
 }
 
 func (r *render) reset() {
-	fmt.Fprint(r.writer, clearScr)
 	r.Local = nil
 	r.Remote = nil
 }
@@ -92,7 +90,7 @@ func (r *render) local(t *tetris.Tetris) {
 	r.Local = t
 	if t.GameOver {
 		r.lobby()
-		fmt.Fprint(r.writer, "\033[11;9H|             You Lose :)              |")
+		fmt.Fprint(r.writer, "\033[11;9H|             Game Over :)             |")
 		return
 	}
 	r.print()
@@ -107,14 +105,13 @@ func (r *render) remote(g *proto.GameMessage) {
 	}
 	if g.GetIsGameOver() {
 		r.lobby()
-		fmt.Fprint(r.writer, "\033[11;9H|              You Win :)              |")
+		fmt.Fprint(r.writer, "\033[11;9H|              You Won :)              |")
 		return
 	}
 	r.print()
 }
 
 func (r *render) print() {
-	fmt.Fprint(r.writer, resetPos)
 	if err := r.template.Execute(r.writer, r.templateData); err != nil {
 		r.logger.Error("unable to execute template in local()", slog.String("error", err.Error()))
 	}
@@ -129,6 +126,7 @@ func loadTemplate() (*template.Template, error) {
 
 	// we use the console raw so new lines don't automatically transform into carriage return
 	// to fix that we add a carriage return to every new line in the layout.
+	layout = resetPos + layout
 	layout = strings.ReplaceAll(layout, "\n", "\r\n")
 	layout = strings.ReplaceAll(layout, "Terminal Tetris", "\033[1mTerminal Tetris\033[0m")
 	return template.New("layout").Funcs(funcMap).Parse(layout)
