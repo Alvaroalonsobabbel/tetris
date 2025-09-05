@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log"
@@ -35,7 +36,7 @@ func newGame() *game {
 	}
 }
 
-func (g *game) isStart() bool {
+func (g *game) isStarted() bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return g.p1 && g.p2
@@ -72,7 +73,7 @@ func (g *game) isClosed() bool {
 
 type tetrisServer struct {
 	proto.UnimplementedTetrisServiceServer
-	waitListID  *game
+	waitList    *game
 	waitTimeout time.Duration
 	mu          sync.Mutex
 }
@@ -81,33 +82,35 @@ func New() proto.TetrisServiceServer {
 	return &tetrisServer{waitTimeout: defaultTimeOut}
 }
 
+func (t *tetrisServer) resetWL() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.waitList = nil
+}
+
 func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMessage, proto.GameMessage]) error {
 	var gameInstance *game
-	var player int
+	var player = player1
 	var name string
 	var opponentCh chan *proto.GameMessage
-	var doneCh = make(chan struct{})
-	defer close(doneCh)
 
-	// New game setup
-	if gameInstance == nil {
-		t.mu.Lock()
-		switch t.waitListID {
-		case nil:
-			player = player1
-			gameInstance = newGame()
-			gameInstance.ready(player1)
-			t.waitListID = gameInstance
-			opponentCh = gameInstance.p2Ch
-		default:
-			player = player2
-			gameInstance = t.waitListID
-			gameInstance.ready(player2)
-			t.waitListID = nil
-			opponentCh = gameInstance.p1Ch
-		}
-		t.mu.Unlock()
+	// The new game setup sequence happens under mutex lock to prevent
+	// multiple concurrent connections reading the wating list as nil.
+	t.mu.Lock()
+	switch t.waitList {
+	case nil:
+		gameInstance = newGame()
+		gameInstance.ready(player1)
+		t.waitList = gameInstance
+		opponentCh = gameInstance.p2Ch
+	default:
+		player = player2
+		gameInstance = t.waitList
+		gameInstance.ready(player2)
+		t.waitList = nil
+		opponentCh = gameInstance.p1Ch
 	}
+	t.mu.Unlock()
 	defer gameInstance.close(player)
 
 	gm, err := stream.Recv()
@@ -120,20 +123,16 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	// Only player 1 waits for the opponent.
 	if player == player1 {
 		log.Printf("%s (player %d) is waiting to start game %p\n", name, player, gameInstance)
-		timeOut := time.After(t.waitTimeout)
-		for !gameInstance.isStart() {
+		to := time.After(t.waitTimeout)
+		for !gameInstance.isStarted() {
 			select {
-			case <-timeOut:
+			case <-to:
 				// If player 1 times out waiting for opponent we clean up the gameInstance and waitingListID.
-				t.mu.Lock()
-				defer t.mu.Unlock()
-				t.waitListID = nil
+				t.resetWL()
 				log.Printf("%s (player %d) timed out waiting to start game %p\n", name, player, gameInstance)
 				return status.Error(codes.DeadlineExceeded, "timeout waiting for opponent")
 			case <-stream.Context().Done():
-				t.mu.Lock()
-				defer t.mu.Unlock()
-				t.waitListID = nil
+				t.resetWL()
 				log.Printf("%s (player %d) disconnected waiting to start game %p\n", name, player, gameInstance)
 				return status.Error(codes.Canceled, "player disconnected")
 			default:
@@ -146,7 +145,9 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	}
 
 	// Receive msg from stream and send to opponent's channel.
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
+		defer cancel()
 		ch := gameInstance.p1Ch
 		if player == player2 {
 			ch = gameInstance.p2Ch
@@ -155,7 +156,6 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 			gm, err := stream.Recv()
 			if err != nil {
 				if errors.Is(err, io.EOF) {
-					doneCh <- struct{}{}
 					return
 				}
 				st, ok := status.FromError(err)
@@ -166,7 +166,6 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 				return
 			}
 			if gameInstance.isClosed() {
-				doneCh <- struct{}{}
 				return
 			}
 			ch <- gm
@@ -184,9 +183,9 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 			if err := stream.Send(om); err != nil {
 				return status.Errorf(codes.Canceled, "failed to send opponent message for %s (player%d): %v", name, player, err)
 			}
-		case <-doneCh:
-			log.Printf("%s (player%d) disconnected from %p", name, player, gameInstance)
-			return nil
+		case <-ctx.Done():
+			log.Printf("%s (player %d) disconnected from game %p", name, player, gameInstance)
+			return status.Errorf(codes.Canceled, "context canceled %s (player%d): %v", name, player, err)
 		}
 	}
 }

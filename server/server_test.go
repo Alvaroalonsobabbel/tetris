@@ -22,8 +22,9 @@ func TestPlayTetris(t *testing.T) {
 		defer closer()
 
 		var wg sync.WaitGroup
-		for i := range 20 {
-			wg.Add(1)
+		var players = 100
+		wg.Add(players)
+		for i := range players {
 			go func() { testPlayer(t, i+1, lis); wg.Done() }()
 		}
 		wg.Wait()
@@ -54,8 +55,8 @@ func TestPlayTetris(t *testing.T) {
 		if !ok || st.Code() != codes.DeadlineExceeded || st.Message() != "timeout waiting for opponent" {
 			t.Errorf("expected DeadlineExceeded with message 'timeout waiting for opponent', got %v", err)
 		}
-		if server.waitListID != nil {
-			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitListID)
+		if server.waitList != nil {
+			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitList)
 		}
 	})
 
@@ -86,8 +87,8 @@ func TestPlayTetris(t *testing.T) {
 			t.Errorf("expected Canceled with message 'player disconnected', got %v", err)
 		}
 		time.Sleep(50 * time.Millisecond)
-		if server.waitListID != nil {
-			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitListID)
+		if server.waitList != nil {
+			t.Errorf("expected waitListID pointer to be nil, got %p", server.waitList)
 		}
 	})
 }
