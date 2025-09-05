@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log"
@@ -30,12 +31,12 @@ type game struct {
 
 func newGame() *game {
 	return &game{
-		p1Ch: make(chan *proto.GameMessage, 10),
-		p2Ch: make(chan *proto.GameMessage, 10),
+		p1Ch: make(chan *proto.GameMessage),
+		p2Ch: make(chan *proto.GameMessage),
 	}
 }
 
-func (g *game) isStart() bool {
+func (g *game) isStarted() bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return g.p1 && g.p2
@@ -72,7 +73,7 @@ func (g *game) isClosed() bool {
 
 type tetrisServer struct {
 	proto.UnimplementedTetrisServiceServer
-	waitListID  *game
+	waitList    *game
 	waitTimeout time.Duration
 	mu          sync.Mutex
 }
@@ -81,29 +82,33 @@ func New() proto.TetrisServiceServer {
 	return &tetrisServer{waitTimeout: defaultTimeOut}
 }
 
+func (t *tetrisServer) resetWL() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.waitList = nil
+}
+
 func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMessage, proto.GameMessage]) error {
 	var gameInstance *game
 	var player int
 	var name string
 	var opponentCh chan *proto.GameMessage
-	var doneCh = make(chan struct{})
-	// defer close(doneCh)
 
 	// New game setup
 	if gameInstance == nil {
 		t.mu.Lock()
-		switch t.waitListID {
+		switch t.waitList {
 		case nil:
 			player = player1
 			gameInstance = newGame()
 			gameInstance.ready(player1)
-			t.waitListID = gameInstance
+			t.waitList = gameInstance
 			opponentCh = gameInstance.p2Ch
 		default:
 			player = player2
-			gameInstance = t.waitListID
+			gameInstance = t.waitList
 			gameInstance.ready(player2)
-			t.waitListID = nil
+			t.waitList = nil
 			opponentCh = gameInstance.p1Ch
 		}
 		t.mu.Unlock()
@@ -121,19 +126,15 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	if player == player1 {
 		log.Printf("%s (player %d) is waiting to start game %p\n", name, player, gameInstance)
 		timeOut := time.After(t.waitTimeout)
-		for !gameInstance.isStart() {
+		for !gameInstance.isStarted() {
 			select {
 			case <-timeOut:
 				// If player 1 times out waiting for opponent we clean up the gameInstance and waitingListID.
-				t.mu.Lock()
-				defer t.mu.Unlock()
-				t.waitListID = nil
+				t.resetWL()
 				log.Printf("%s (player %d) timed out waiting to start game %p\n", name, player, gameInstance)
 				return status.Error(codes.DeadlineExceeded, "timeout waiting for opponent")
 			case <-stream.Context().Done():
-				t.mu.Lock()
-				defer t.mu.Unlock()
-				t.waitListID = nil
+				t.resetWL()
 				log.Printf("%s (player %d) disconnected waiting to start game %p\n", name, player, gameInstance)
 				return status.Error(codes.Canceled, "player disconnected")
 			default:
@@ -146,24 +147,17 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	}
 
 	// Receive msg from stream and send to opponent's channel.
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		defer func() {
-			select {
-			case doneCh <- struct{}{}:
-			default:
-			}
-		}()
+		defer cancel()
 		ch := gameInstance.p1Ch
 		if player == player2 {
 			ch = gameInstance.p2Ch
 		}
-		var gm *proto.GameMessage
-		var err error
 		for {
-			gm, err = stream.Recv()
+			gm, err := stream.Recv()
 			if err != nil {
 				if errors.Is(err, io.EOF) {
-					// doneCh <- struct{}{}
 					return
 				}
 				st, ok := status.FromError(err)
@@ -174,7 +168,6 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 				return
 			}
 			if gameInstance.isClosed() {
-				// doneCh <- struct{}{}
 				return
 			}
 			ch <- gm
@@ -182,11 +175,9 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	}()
 
 	// Receive from opponent's channel and send to stream.
-	var om *proto.GameMessage
-	var ok bool
 	for {
 		select {
-		case om, ok = <-opponentCh:
+		case om, ok := <-opponentCh:
 			if !ok {
 				log.Printf("opponent channel closed for %s (player%d) in game %p", name, player, gameInstance)
 				return nil
@@ -194,10 +185,9 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 			if err := stream.Send(om); err != nil {
 				return status.Errorf(codes.Canceled, "failed to send opponent message for %s (player%d): %v", name, player, err)
 			}
-			// om = nil
-		case <-doneCh:
-			log.Printf("%s (player%d) disconnected from %p", name, player, gameInstance)
-			return nil
+		case <-ctx.Done():
+			log.Printf("%s (player %d) disconnected from game %p", name, player, gameInstance)
+			return status.Errorf(codes.Canceled, "context canceled %s (player%d): %v", name, player, err)
 		}
 	}
 }
