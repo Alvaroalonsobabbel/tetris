@@ -90,29 +90,27 @@ func (t *tetrisServer) resetWL() {
 
 func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMessage, proto.GameMessage]) error {
 	var gameInstance *game
-	var player int
+	var player = player1
 	var name string
 	var opponentCh chan *proto.GameMessage
 
-	// New game setup
-	if gameInstance == nil {
-		t.mu.Lock()
-		switch t.waitList {
-		case nil:
-			player = player1
-			gameInstance = newGame()
-			gameInstance.ready(player1)
-			t.waitList = gameInstance
-			opponentCh = gameInstance.p2Ch
-		default:
-			player = player2
-			gameInstance = t.waitList
-			gameInstance.ready(player2)
-			t.waitList = nil
-			opponentCh = gameInstance.p1Ch
-		}
-		t.mu.Unlock()
+	// The new game setup sequence happens under mutex lock to prevent
+	// multiple concurrent connections reading the wating list as nil.
+	t.mu.Lock()
+	switch t.waitList {
+	case nil:
+		gameInstance = newGame()
+		gameInstance.ready(player1)
+		t.waitList = gameInstance
+		opponentCh = gameInstance.p2Ch
+	default:
+		player = player2
+		gameInstance = t.waitList
+		gameInstance.ready(player2)
+		t.waitList = nil
+		opponentCh = gameInstance.p1Ch
 	}
+	t.mu.Unlock()
 	defer gameInstance.close(player)
 
 	gm, err := stream.Recv()
@@ -125,10 +123,10 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 	// Only player 1 waits for the opponent.
 	if player == player1 {
 		log.Printf("%s (player %d) is waiting to start game %p\n", name, player, gameInstance)
-		timeOut := time.After(t.waitTimeout)
+		to := time.After(t.waitTimeout)
 		for !gameInstance.isStarted() {
 			select {
-			case <-timeOut:
+			case <-to:
 				// If player 1 times out waiting for opponent we clean up the gameInstance and waitingListID.
 				t.resetWL()
 				log.Printf("%s (player %d) timed out waiting to start game %p\n", name, player, gameInstance)
