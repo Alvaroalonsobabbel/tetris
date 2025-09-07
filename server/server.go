@@ -6,12 +6,13 @@ import (
 	"io"
 	"log"
 	"sync"
-	"tetris/proto"
+	"tetris/pb"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -23,7 +24,7 @@ const (
 )
 
 type game struct {
-	p1Ch, p2Ch chan *proto.GameMessage
+	p1Ch, p2Ch chan *pb.GameMessage
 	p1, p2     bool
 	closed     bool
 	mu         sync.Mutex
@@ -31,8 +32,8 @@ type game struct {
 
 func newGame() *game {
 	return &game{
-		p1Ch: make(chan *proto.GameMessage),
-		p2Ch: make(chan *proto.GameMessage),
+		p1Ch: make(chan *pb.GameMessage),
+		p2Ch: make(chan *pb.GameMessage),
 	}
 }
 
@@ -72,13 +73,13 @@ func (g *game) isClosed() bool {
 }
 
 type tetrisServer struct {
-	proto.UnimplementedTetrisServiceServer
+	pb.UnimplementedTetrisServiceServer
 	waitList    *game
 	waitTimeout time.Duration
 	mu          sync.Mutex
 }
 
-func New() proto.TetrisServiceServer {
+func New() pb.TetrisServiceServer {
 	return &tetrisServer{waitTimeout: defaultTimeOut}
 }
 
@@ -88,11 +89,11 @@ func (t *tetrisServer) resetWL() {
 	t.waitList = nil
 }
 
-func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMessage, proto.GameMessage]) error {
+func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[pb.GameMessage, pb.GameMessage]) error {
 	var gameInstance *game
 	var player = player1
 	var name string
-	var opponentCh chan *proto.GameMessage
+	var opponentCh chan *pb.GameMessage
 
 	// The new game setup sequence happens under mutex lock to prevent
 	// multiple concurrent connections reading the wating list as nil.
@@ -140,7 +141,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[proto.GameMess
 			}
 		}
 	}
-	if err := stream.Send(&proto.GameMessage{IsStarted: true}); err != nil {
+	if err := stream.Send(pb.GameMessage_builder{IsStarted: proto.Bool(true)}.Build()); err != nil {
 		return status.Errorf(codes.Canceled, "failed to send gameMessage isStarted for %s (player%d): %v", name, player, err)
 	}
 

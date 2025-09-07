@@ -6,7 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"sync"
-	"tetris/proto"
+	"tetris/pb"
 	"tetris/tetris"
 
 	"github.com/eiannone/keyboard"
@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 type clientState int
@@ -51,7 +52,7 @@ type tetrisGame interface {
 
 type renderer interface {
 	local(*tetris.Tetris)
-	remote(*proto.GameMessage)
+	remote(*pb.GameMessage)
 	reset()
 }
 
@@ -188,7 +189,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 			c.logger.Error("unable to close gRPC client", slog.String("error", err.Error()))
 		}
 	}()
-	stream, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
+	stream, err := pb.NewTetrisServiceClient(conn).PlayTetris(ctx)
 	if err != nil {
 		c.logger.Error("unable to create gRPC PlayTetris stream", slog.String("error", err.Error()))
 		return
@@ -196,7 +197,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 	defer stream.CloseSend() //nolint: errcheck
 
 	// Set receiver channel
-	rcvCh := make(chan *proto.GameMessage)
+	rcvCh := make(chan *pb.GameMessage)
 	doneCh := make(chan struct{})
 	go func() {
 		defer func() {
@@ -226,11 +227,11 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 	}()
 
 	// Send initial message, wait for game to start.
-	if err := stream.Send(&proto.GameMessage{Name: c.options.Name}); err != nil {
+	if err := stream.Send(pb.GameMessage_builder{Name: proto.String(c.options.Name)}.Build()); err != nil {
 		c.logger.Error("unable to send initial message", slog.String("error", err.Error()))
 		return
 	}
-	c.render.remote(&proto.GameMessage{})
+	c.render.remote(&pb.GameMessage{})
 start:
 	for {
 		select {
@@ -257,13 +258,13 @@ start:
 				return
 			}
 			c.render.local(lu)
-			if err := stream.Send(&proto.GameMessage{
-				Name:       c.options.Name,
-				IsGameOver: lu.GameOver,
-				IsStarted:  true,
-				LinesClear: int32(lu.LinesClear), // nolint:gosec
+			if err := stream.Send(pb.GameMessage_builder{
+				Name:       proto.String(c.options.Name),
+				IsGameOver: proto.Bool(lu.GameOver),
+				IsStarted:  proto.Bool(true),
+				LinesClear: proto.Int32(int32(lu.LinesClear)), // nolint:gosec
 				Stack:      stack2Proto(lu),
-			}); err != nil {
+			}.Build()); err != nil {
 				if err == io.EOF {
 					c.logger.Debug("send() opponent closed the game with EOF", slog.String("debug", err.Error()))
 					return
@@ -285,7 +286,7 @@ start:
 				c.logger.Error("listenOnline remote update channel closed unexpectedly")
 				return
 			}
-			c.tetris.RemoteLines(ru.LinesClear)
+			c.tetris.RemoteLines(ru.GetLinesClear())
 			c.render.remote(ru)
 			if ru.GetIsGameOver() {
 				c.logger.Debug("listenOnline closed through remote.GetIsGameOver()")
