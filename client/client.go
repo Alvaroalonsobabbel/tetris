@@ -120,7 +120,6 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 			case 'p':
 				go c.listenTetris()
 				c.state.set(playing)
-				c.tetris.Start()
 			case 'o':
 				ctx, cancel = context.WithCancel(context.Background())
 				defer cancel()
@@ -135,6 +134,7 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 			switch event.Rune {
 			case 'c':
 				cancel()
+				c.render.reset()
 				c.render.local(nil)
 			default:
 				continue
@@ -161,6 +161,7 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 }
 
 func (c *Client) listenTetris() {
+	go c.tetris.Start()
 	c.render.reset()
 	for u := range c.tetris.GetUpdate() {
 		c.render.local(u)
