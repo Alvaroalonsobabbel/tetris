@@ -1,6 +1,11 @@
 edition = "2023";
 
+package tetris;
+
+import "google/protobuf/go_features.proto";
+
 option go_package = "github.com/Alvaroalonsobabbel/pb";
+option features.(pb.go).api_level = API_OPAQUE;
 
 service TetrisService {
     rpc PlayTetris(stream GameMessage) returns (stream GameMessage) {}

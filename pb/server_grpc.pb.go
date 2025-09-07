@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TetrisService_PlayTetris_FullMethodName = "/TetrisService/PlayTetris"
+	TetrisService_PlayTetris_FullMethodName = "/tetris.TetrisService/PlayTetris"
 )
 
 // TetrisServiceClient is the client API for TetrisService service.
@@ -100,7 +100,7 @@ type TetrisService_PlayTetrisServer = grpc.BidiStreamingServer[GameMessage, Game
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var TetrisService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "TetrisService",
+	ServiceName: "tetris.TetrisService",
 	HandlerType: (*TetrisServiceServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{

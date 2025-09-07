@@ -44,7 +44,7 @@ func TestPlayTetris(t *testing.T) {
 			t.Errorf("error calling NewGame: %v", err)
 		}
 
-		if err := game.Send(&pb.GameMessage{Name: proto.String("test")}); err != nil {
+		if err := game.Send(pb.GameMessage_builder{Name: proto.String("test")}.Build()); err != nil {
 			t.Errorf("error sending: %v", err)
 			return
 		}
@@ -74,7 +74,7 @@ func TestPlayTetris(t *testing.T) {
 			t.Errorf("error calling NewGame: %v", err)
 		}
 
-		if err := game.Send(&pb.GameMessage{Name: proto.String("test")}); err != nil {
+		if err := game.Send(pb.GameMessage_builder{Name: proto.String("test")}.Build()); err != nil {
 			t.Errorf("error sending: %v", err)
 			return
 		}
@@ -136,7 +136,7 @@ func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
 	if err != nil {
 		t.Errorf("error calling NewGame for P%d: %v", n, err)
 	}
-	outMsg := &pb.GameMessage{Name: proto.String(fmt.Sprintf("player%d", n))}
+	outMsg := pb.GameMessage_builder{Name: proto.String(fmt.Sprintf("player%d", n))}.Build()
 	if err := game.Send(outMsg); err != nil {
 		t.Errorf("error sending player name for P%d: %v", n, err)
 	}
@@ -151,7 +151,7 @@ func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
 	}
 	// Players send values back and forth
 	for i := range 50 {
-		outMsg.LinesClear = proto.Int32(int32(i)) // nolint:gosec
+		outMsg.SetLinesClear(int32(i)) // nolint:gosec
 		if err := game.Send(outMsg); err != nil {
 			t.Errorf("error sending player name for P%d: %v", n, err)
 			return

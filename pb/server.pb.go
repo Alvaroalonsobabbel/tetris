@@ -9,8 +9,8 @@ package pb
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "google.golang.org/protobuf/types/gofeaturespb"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -22,14 +22,16 @@ const (
 )
 
 type GameMessage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	IsStarted     *bool                  `protobuf:"varint,2,opt,name=is_started,json=isStarted" json:"is_started,omitempty"`
-	IsGameOver    *bool                  `protobuf:"varint,3,opt,name=is_game_over,json=isGameOver" json:"is_game_over,omitempty"`
-	LinesClear    *int32                 `protobuf:"varint,4,opt,name=lines_clear,json=linesClear" json:"lines_clear,omitempty"`
-	Stack         *Stack                 `protobuf:"bytes,5,opt,name=stack" json:"stack,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_IsStarted   bool                   `protobuf:"varint,2,opt,name=is_started,json=isStarted"`
+	xxx_hidden_IsGameOver  bool                   `protobuf:"varint,3,opt,name=is_game_over,json=isGameOver"`
+	xxx_hidden_LinesClear  int32                  `protobuf:"varint,4,opt,name=lines_clear,json=linesClear"`
+	xxx_hidden_Stack       *Stack                 `protobuf:"bytes,5,opt,name=stack"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GameMessage) Reset() {
@@ -57,51 +59,166 @@ func (x *GameMessage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GameMessage.ProtoReflect.Descriptor instead.
-func (*GameMessage) Descriptor() ([]byte, []int) {
-	return file_pb_server_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *GameMessage) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GameMessage) GetIsStarted() bool {
-	if x != nil && x.IsStarted != nil {
-		return *x.IsStarted
+	if x != nil {
+		return x.xxx_hidden_IsStarted
 	}
 	return false
 }
 
 func (x *GameMessage) GetIsGameOver() bool {
-	if x != nil && x.IsGameOver != nil {
-		return *x.IsGameOver
+	if x != nil {
+		return x.xxx_hidden_IsGameOver
 	}
 	return false
 }
 
 func (x *GameMessage) GetLinesClear() int32 {
-	if x != nil && x.LinesClear != nil {
-		return *x.LinesClear
+	if x != nil {
+		return x.xxx_hidden_LinesClear
 	}
 	return 0
 }
 
 func (x *GameMessage) GetStack() *Stack {
 	if x != nil {
-		return x.Stack
+		return x.xxx_hidden_Stack
 	}
 	return nil
 }
 
+func (x *GameMessage) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *GameMessage) SetIsStarted(v bool) {
+	x.xxx_hidden_IsStarted = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *GameMessage) SetIsGameOver(v bool) {
+	x.xxx_hidden_IsGameOver = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *GameMessage) SetLinesClear(v int32) {
+	x.xxx_hidden_LinesClear = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *GameMessage) SetStack(v *Stack) {
+	x.xxx_hidden_Stack = v
+}
+
+func (x *GameMessage) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GameMessage) HasIsStarted() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GameMessage) HasIsGameOver() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GameMessage) HasLinesClear() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GameMessage) HasStack() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Stack != nil
+}
+
+func (x *GameMessage) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *GameMessage) ClearIsStarted() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_IsStarted = false
+}
+
+func (x *GameMessage) ClearIsGameOver() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_IsGameOver = false
+}
+
+func (x *GameMessage) ClearLinesClear() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_LinesClear = 0
+}
+
+func (x *GameMessage) ClearStack() {
+	x.xxx_hidden_Stack = nil
+}
+
+type GameMessage_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name       *string
+	IsStarted  *bool
+	IsGameOver *bool
+	LinesClear *int32
+	Stack      *Stack
+}
+
+func (b0 GameMessage_builder) Build() *GameMessage {
+	m0 := &GameMessage{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.IsStarted != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_IsStarted = *b.IsStarted
+	}
+	if b.IsGameOver != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_IsGameOver = *b.IsGameOver
+	}
+	if b.LinesClear != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_LinesClear = *b.LinesClear
+	}
+	x.xxx_hidden_Stack = b.Stack
+	return m0
+}
+
 type Stack struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rows          []*Row                 `protobuf:"bytes,1,rep,name=rows" json:"rows,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Rows *[]*Row                `protobuf:"bytes,1,rep,name=rows"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Stack) Reset() {
@@ -129,23 +246,38 @@ func (x *Stack) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Stack.ProtoReflect.Descriptor instead.
-func (*Stack) Descriptor() ([]byte, []int) {
-	return file_pb_server_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *Stack) GetRows() []*Row {
 	if x != nil {
-		return x.Rows
+		if x.xxx_hidden_Rows != nil {
+			return *x.xxx_hidden_Rows
+		}
 	}
 	return nil
 }
 
+func (x *Stack) SetRows(v []*Row) {
+	x.xxx_hidden_Rows = &v
+}
+
+type Stack_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Rows []*Row
+}
+
+func (b0 Stack_builder) Build() *Stack {
+	m0 := &Stack{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Rows = &b.Rows
+	return m0
+}
+
 type Row struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cells         []string               `protobuf:"bytes,1,rep,name=cells" json:"cells,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Cells []string               `protobuf:"bytes,1,rep,name=cells"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Row) Reset() {
@@ -173,23 +305,36 @@ func (x *Row) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Row.ProtoReflect.Descriptor instead.
-func (*Row) Descriptor() ([]byte, []int) {
-	return file_pb_server_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *Row) GetCells() []string {
 	if x != nil {
-		return x.Cells
+		return x.xxx_hidden_Cells
 	}
 	return nil
+}
+
+func (x *Row) SetCells(v []string) {
+	x.xxx_hidden_Cells = v
+}
+
+type Row_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Cells []string
+}
+
+func (b0 Row_builder) Build() *Row {
+	m0 := &Row{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Cells = b.Cells
+	return m0
 }
 
 var File_pb_server_proto protoreflect.FileDescriptor
 
 const file_pb_server_proto_rawDesc = "" +
 	"\n" +
-	"\x0fpb/server.proto\"\xa1\x01\n" +
+	"\x0fpb/server.proto\x12\x06tetris\x1a!google/protobuf/go_features.proto\"\xa8\x01\n" +
 	"\vGameMessage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -197,39 +342,27 @@ const file_pb_server_proto_rawDesc = "" +
 	"\fis_game_over\x18\x03 \x01(\bR\n" +
 	"isGameOver\x12\x1f\n" +
 	"\vlines_clear\x18\x04 \x01(\x05R\n" +
-	"linesClear\x12\x1c\n" +
-	"\x05stack\x18\x05 \x01(\v2\x06.StackR\x05stack\"!\n" +
-	"\x05Stack\x12\x18\n" +
-	"\x04rows\x18\x01 \x03(\v2\x04.RowR\x04rows\"\x1b\n" +
+	"linesClear\x12#\n" +
+	"\x05stack\x18\x05 \x01(\v2\r.tetris.StackR\x05stack\"(\n" +
+	"\x05Stack\x12\x1f\n" +
+	"\x04rows\x18\x01 \x03(\v2\v.tetris.RowR\x04rows\"\x1b\n" +
 	"\x03Row\x12\x14\n" +
-	"\x05cells\x18\x01 \x03(\tR\x05cells2?\n" +
-	"\rTetrisService\x12.\n" +
+	"\x05cells\x18\x01 \x03(\tR\x05cells2M\n" +
+	"\rTetrisService\x12<\n" +
 	"\n" +
-	"PlayTetris\x12\f.GameMessage\x1a\f.GameMessage\"\x00(\x010\x01B\"Z github.com/Alvaroalonsobabbel/pbb\beditionsp\xe8\a"
-
-var (
-	file_pb_server_proto_rawDescOnce sync.Once
-	file_pb_server_proto_rawDescData []byte
-)
-
-func file_pb_server_proto_rawDescGZIP() []byte {
-	file_pb_server_proto_rawDescOnce.Do(func() {
-		file_pb_server_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_pb_server_proto_rawDesc), len(file_pb_server_proto_rawDesc)))
-	})
-	return file_pb_server_proto_rawDescData
-}
+	"PlayTetris\x12\x13.tetris.GameMessage\x1a\x13.tetris.GameMessage\"\x00(\x010\x01B*Z github.com/Alvaroalonsobabbel/pb\x92\x03\x05\xd2>\x02\x10\x03b\beditionsp\xe8\a"
 
 var file_pb_server_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_pb_server_proto_goTypes = []any{
-	(*GameMessage)(nil), // 0: GameMessage
-	(*Stack)(nil),       // 1: Stack
-	(*Row)(nil),         // 2: Row
+	(*GameMessage)(nil), // 0: tetris.GameMessage
+	(*Stack)(nil),       // 1: tetris.Stack
+	(*Row)(nil),         // 2: tetris.Row
 }
 var file_pb_server_proto_depIdxs = []int32{
-	1, // 0: GameMessage.stack:type_name -> Stack
-	2, // 1: Stack.rows:type_name -> Row
-	0, // 2: TetrisService.PlayTetris:input_type -> GameMessage
-	0, // 3: TetrisService.PlayTetris:output_type -> GameMessage
+	1, // 0: tetris.GameMessage.stack:type_name -> tetris.Stack
+	2, // 1: tetris.Stack.rows:type_name -> tetris.Row
+	0, // 2: tetris.TetrisService.PlayTetris:input_type -> tetris.GameMessage
+	0, // 3: tetris.TetrisService.PlayTetris:output_type -> tetris.GameMessage
 	3, // [3:4] is the sub-list for method output_type
 	2, // [2:3] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

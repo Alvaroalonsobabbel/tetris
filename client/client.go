@@ -227,7 +227,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 	}()
 
 	// Send initial message, wait for game to start.
-	if err := stream.Send(&pb.GameMessage{Name: proto.String(c.options.Name)}); err != nil {
+	if err := stream.Send(pb.GameMessage_builder{Name: proto.String(c.options.Name)}.Build()); err != nil {
 		c.logger.Error("unable to send initial message", slog.String("error", err.Error()))
 		return
 	}
@@ -258,13 +258,13 @@ start:
 				return
 			}
 			c.render.local(lu)
-			if err := stream.Send(&pb.GameMessage{
+			if err := stream.Send(pb.GameMessage_builder{
 				Name:       proto.String(c.options.Name),
 				IsGameOver: proto.Bool(lu.GameOver),
 				IsStarted:  proto.Bool(true),
 				LinesClear: proto.Int32(int32(lu.LinesClear)), // nolint:gosec
 				Stack:      stack2Proto(lu),
-			}); err != nil {
+			}.Build()); err != nil {
 				if err == io.EOF {
 					c.logger.Debug("send() opponent closed the game with EOF", slog.String("debug", err.Error()))
 					return

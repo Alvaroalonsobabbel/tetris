@@ -141,7 +141,7 @@ func (t *tetrisServer) PlayTetris(stream grpc.BidiStreamingServer[pb.GameMessage
 			}
 		}
 	}
-	if err := stream.Send(&pb.GameMessage{IsStarted: proto.Bool(true)}); err != nil {
+	if err := stream.Send(pb.GameMessage_builder{IsStarted: proto.Bool(true)}.Build()); err != nil {
 		return status.Errorf(codes.Canceled, "failed to send gameMessage isStarted for %s (player%d): %v", name, player, err)
 	}
 
