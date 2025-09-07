@@ -1,6 +1,6 @@
-syntax = "proto3";
+edition = "2023";
 
-option go_package = "github.com/Alvaroalonsobabbel/proto";
+option go_package = "github.com/Alvaroalonsobabbel/pb";
 
 service TetrisService {
     rpc PlayTetris(stream GameMessage) returns (stream GameMessage) {}

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
-	"tetris/proto"
+	"tetris/pb"
 	"tetris/tetris"
 	"text/template"
 )
@@ -40,7 +40,7 @@ var colorMap = map[tetris.Shape]string{
 
 type templateData struct {
 	Local   *tetris.Tetris
-	Remote  *proto.GameMessage
+	Remote  *pb.GameMessage
 	Name    string
 	NoGhost bool
 }
@@ -96,7 +96,7 @@ func (r *render) local(t *tetris.Tetris) {
 	r.print()
 }
 
-func (r *render) remote(g *proto.GameMessage) {
+func (r *render) remote(g *pb.GameMessage) {
 	r.Remote = g
 	if !g.GetIsStarted() {
 		fmt.Fprint(r.writer, "\033[12;9H|        waiting for player...         |")
@@ -203,11 +203,11 @@ func nextPiece(t *templateData) []string {
 	return rendered
 }
 
-func stack2Proto(t *tetris.Tetris) *proto.Stack {
-	rendered := &proto.Stack{Rows: make([]*proto.Row, 20)}
+func stack2Proto(t *tetris.Tetris) *pb.Stack {
+	rendered := &pb.Stack{Rows: make([]*pb.Row, 20)}
 
 	for i := range rendered.Rows {
-		rendered.Rows[i] = &proto.Row{
+		rendered.Rows[i] = &pb.Row{
 			Cells: make([]string, 10),
 		}
 	}

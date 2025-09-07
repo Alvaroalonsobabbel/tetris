@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"tetris/proto"
+	"tetris/pb"
 	"tetris/tetris"
 
 	approvals "github.com/approvals/go-approval-tests"
@@ -93,7 +93,7 @@ func TestLocalStack(t *testing.T) {
 
 func TestRemoteStack(t *testing.T) {
 	td := &templateData{
-		Remote: &proto.GameMessage{
+		Remote: &pb.GameMessage{
 			Stack: stack2Proto(tetris.NewTestTetris(tetris.J)),
 		},
 	}
@@ -156,10 +156,10 @@ func TestNextPiece(t *testing.T) {
 
 func TestStack2Proto(t *testing.T) {
 	got := stack2Proto(tetris.NewTestTetris(tetris.J))
-	want := &proto.Stack{Rows: make([]*proto.Row, 20)}
+	want := &pb.Stack{Rows: make([]*pb.Row, 20)}
 
 	for i := range want.Rows {
-		want.Rows[i] = &proto.Row{
+		want.Rows[i] = &pb.Row{
 			Cells: make([]string, 10),
 		}
 	}
