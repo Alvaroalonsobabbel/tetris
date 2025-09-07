@@ -182,6 +182,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 	conn, err := grpc.NewClient(c.options.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		c.logger.Error("unable to create gRPC client", slog.String("error", err.Error()))
+		// TODO: render message in lobby
 		return
 	}
 	defer func() {
@@ -192,6 +193,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 	stream, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
 	if err != nil {
 		c.logger.Error("unable to create gRPC PlayTetris stream", slog.String("error", err.Error()))
+		// TODO: render message in lobby
 		return
 	}
 	defer stream.CloseSend() //nolint: errcheck

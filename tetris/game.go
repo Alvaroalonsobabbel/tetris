@@ -67,7 +67,9 @@ func (g *Game) Stop() {
 	if !g.tetris.GameOver {
 		g.tetris.GameOver = true
 	}
-	g.cancel()
+	if g.cancel != nil {
+		g.cancel()
+	}
 }
 
 func (g *Game) Action(a Action) {
