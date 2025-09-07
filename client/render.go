@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
-	"tetris/proto"
+	"tetris/pb"
 	"tetris/tetris"
 	"text/template"
 )
@@ -40,7 +40,7 @@ var colorMap = map[tetris.Shape]string{
 
 type templateData struct {
 	Local   *tetris.Tetris
-	Remote  *proto.GameMessage
+	Remote  *pb.GameMessage
 	Name    string
 	NoGhost bool
 }
@@ -96,7 +96,7 @@ func (r *render) local(t *tetris.Tetris) {
 	r.print()
 }
 
-func (r *render) remote(g *proto.GameMessage) {
+func (r *render) remote(g *pb.GameMessage) {
 	r.Remote = g
 	if !g.GetIsStarted() {
 		fmt.Fprint(r.writer, "\033[12;9H|        waiting for player...         |")
@@ -172,8 +172,8 @@ func remoteStack(t *templateData) [20][10]string {
 	for y := range 20 {
 		for x := range 10 {
 			out := "  "
-			if t != nil && t.Remote != nil && t.Remote.Stack != nil {
-				c, ok := colorMap[tetris.Shape(t.Remote.Stack.Rows[y].Cells[x])]
+			if t != nil && t.Remote != nil {
+				c, ok := colorMap[tetris.Shape(t.Remote.GetStack().GetRows()[y].GetCells()[x])]
 				if ok {
 					out = fmt.Sprintf("\x1b[7m\x1b[%sm[]\x1b[0m", c)
 				}
@@ -203,19 +203,19 @@ func nextPiece(t *templateData) []string {
 	return rendered
 }
 
-func stack2Proto(t *tetris.Tetris) *proto.Stack {
-	rendered := &proto.Stack{Rows: make([]*proto.Row, 20)}
+func stack2Proto(t *tetris.Tetris) *pb.Stack {
+	rendered := pb.Stack_builder{Rows: make([]*pb.Row, 20)}.Build()
 
-	for i := range rendered.Rows {
-		rendered.Rows[i] = &proto.Row{
+	for i := range rendered.GetRows() {
+		rendered.GetRows()[i] = pb.Row_builder{
 			Cells: make([]string, 10),
-		}
+		}.Build()
 	}
 
 	for iy, y := range t.Stack {
 		for ix, x := range y {
 			if x != tetris.Shape("") {
-				rendered.Rows[iy].Cells[ix] = string(x)
+				rendered.GetRows()[iy].GetCells()[ix] = string(x)
 			}
 		}
 	}
@@ -225,7 +225,7 @@ func stack2Proto(t *tetris.Tetris) *proto.Stack {
 		for iy, y := range t.Tetromino.Grid {
 			for ix, x := range y {
 				if x {
-					rendered.Rows[t.Tetromino.Y-iy].Cells[t.Tetromino.X+ix] = string(t.Tetromino.Shape)
+					rendered.GetRows()[t.Tetromino.Y-iy].GetCells()[t.Tetromino.X+ix] = string(t.Tetromino.Shape)
 				}
 			}
 		}

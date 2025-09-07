@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"tetris/proto"
+	"tetris/pb"
 	"tetris/server"
 
 	"google.golang.org/grpc"
@@ -20,7 +20,7 @@ func main() {
 	defer lis.Close()
 	s := grpc.NewServer()
 	defer s.Stop()
-	proto.RegisterTetrisServiceServer(s, server.New())
+	pb.RegisterTetrisServiceServer(s, server.New())
 
 	fmt.Printf("starting server in port %s...\n", port)
 	if err := s.Serve(lis); err != nil {

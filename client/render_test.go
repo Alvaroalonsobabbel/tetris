@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"tetris/proto"
+	"tetris/pb"
 	"tetris/tetris"
 
 	approvals "github.com/approvals/go-approval-tests"
@@ -93,9 +93,9 @@ func TestLocalStack(t *testing.T) {
 
 func TestRemoteStack(t *testing.T) {
 	td := &templateData{
-		Remote: &proto.GameMessage{
+		Remote: pb.GameMessage_builder{
 			Stack: stack2Proto(tetris.NewTestTetris(tetris.J)),
-		},
+		}.Build(),
 	}
 	want := [20][10]string{}
 	for y := range want {
@@ -156,17 +156,17 @@ func TestNextPiece(t *testing.T) {
 
 func TestStack2Proto(t *testing.T) {
 	got := stack2Proto(tetris.NewTestTetris(tetris.J))
-	want := &proto.Stack{Rows: make([]*proto.Row, 20)}
+	want := pb.Stack_builder{Rows: make([]*pb.Row, 20)}.Build()
 
-	for i := range want.Rows {
-		want.Rows[i] = &proto.Row{
+	for i := range want.GetRows() {
+		want.GetRows()[i] = pb.Row_builder{
 			Cells: make([]string, 10),
-		}
+		}.Build()
 	}
-	want.Rows[19].Cells[3] = "J"
-	want.Rows[18].Cells[3] = "J"
-	want.Rows[18].Cells[4] = "J"
-	want.Rows[18].Cells[5] = "J"
+	want.GetRows()[19].GetCells()[3] = "J"
+	want.GetRows()[18].GetCells()[3] = "J"
+	want.GetRows()[18].GetCells()[4] = "J"
+	want.GetRows()[18].GetCells()[5] = "J"
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("want %v, got %v", want, got)

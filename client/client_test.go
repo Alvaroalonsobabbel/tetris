@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"tetris/proto"
+	"tetris/pb"
 	"tetris/tetris"
 	"time"
 
@@ -33,8 +33,8 @@ type mockRender struct {
 	remoteCount int
 }
 
-func (m *mockRender) remote(*proto.GameMessage) { m.remoteCount++ }
-func (m *mockRender) reset()                    {}
+func (m *mockRender) remote(*pb.GameMessage) { m.remoteCount++ }
+func (m *mockRender) reset()                 {}
 func (m *mockRender) local(t *tetris.Tetris) {
 	m.localCount++
 	if t != nil && t.GameOver {

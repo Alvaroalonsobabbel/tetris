@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 	"testing"
-	"tetris/proto"
+	"tetris/pb"
 	"time"
 
 	"google.golang.org/grpc"
@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestPlayTetris(t *testing.T) {
@@ -38,12 +39,12 @@ func TestPlayTetris(t *testing.T) {
 		defer cancel()
 
 		conn := testClient(t, lis)
-		game, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
+		game, err := pb.NewTetrisServiceClient(conn).PlayTetris(ctx)
 		if err != nil {
 			t.Errorf("error calling NewGame: %v", err)
 		}
 
-		if err := game.Send(&proto.GameMessage{Name: "test"}); err != nil {
+		if err := game.Send(pb.GameMessage_builder{Name: proto.String("test")}.Build()); err != nil {
 			t.Errorf("error sending: %v", err)
 			return
 		}
@@ -68,12 +69,12 @@ func TestPlayTetris(t *testing.T) {
 		defer cancel()
 
 		conn := testClient(t, lis)
-		game, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
+		game, err := pb.NewTetrisServiceClient(conn).PlayTetris(ctx)
 		if err != nil {
 			t.Errorf("error calling NewGame: %v", err)
 		}
 
-		if err := game.Send(&proto.GameMessage{Name: "test"}); err != nil {
+		if err := game.Send(pb.GameMessage_builder{Name: proto.String("test")}.Build()); err != nil {
 			t.Errorf("error sending: %v", err)
 			return
 		}
@@ -97,12 +98,12 @@ func testServer(t testing.TB) (*bufconn.Listener, func()) {
 	return testCustomServer(t, New())
 }
 
-func testCustomServer(t testing.TB, tss proto.TetrisServiceServer) (*bufconn.Listener, func()) {
+func testCustomServer(t testing.TB, tss pb.TetrisServiceServer) (*bufconn.Listener, func()) {
 	buffer := 101024 * 1024
 	lis := bufconn.Listen(buffer)
 
 	s := grpc.NewServer()
-	proto.RegisterTetrisServiceServer(s, tss)
+	pb.RegisterTetrisServiceServer(s, tss)
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			t.Fatalf("unable to serve: %v", err)
@@ -131,11 +132,11 @@ func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
 	ctx, timeout := context.WithTimeout(context.Background(), 10*time.Second)
 	defer timeout()
 	conn := testClient(t, lis)
-	game, err := proto.NewTetrisServiceClient(conn).PlayTetris(ctx)
+	game, err := pb.NewTetrisServiceClient(conn).PlayTetris(ctx)
 	if err != nil {
 		t.Errorf("error calling NewGame for P%d: %v", n, err)
 	}
-	outMsg := &proto.GameMessage{Name: fmt.Sprintf("player%d", n)}
+	outMsg := pb.GameMessage_builder{Name: proto.String(fmt.Sprintf("player%d", n))}.Build()
 	if err := game.Send(outMsg); err != nil {
 		t.Errorf("error sending player name for P%d: %v", n, err)
 	}
@@ -150,7 +151,7 @@ func testPlayer(t *testing.T, n int, lis *bufconn.Listener) {
 	}
 	// Players send values back and forth
 	for i := range 50 {
-		outMsg.LinesClear = int32(i) // nolint:gosec
+		outMsg.SetLinesClear(int32(i)) // nolint:gosec
 		if err := game.Send(outMsg); err != nil {
 			t.Errorf("error sending player name for P%d: %v", n, err)
 			return
