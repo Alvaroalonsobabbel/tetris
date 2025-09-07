@@ -119,9 +119,11 @@ func (r *render) print() {
 
 func loadTemplate() (*template.Template, error) {
 	funcMap := template.FuncMap{
-		"localStack":  localStack,
-		"remoteStack": remoteStack,
-		"nextPiece":   nextPiece,
+		"localStack":       localStack,
+		"remoteStack":      remoteStack,
+		"nextPiece":        nextPiece,
+		"remoteName":       remoteName,
+		"remoteLinesClear": remoteLinesClear,
 	}
 
 	// we use the console raw so new lines don't automatically transform into carriage return
@@ -231,4 +233,18 @@ func stack2Proto(t *tetris.Tetris) *pb.Stack {
 		}
 	}
 	return rendered
+}
+
+func remoteName(t *templateData) string {
+	if t.Remote != nil {
+		return t.Remote.GetName()
+	}
+	return ""
+}
+
+func remoteLinesClear(t *templateData) int32 {
+	if t.Remote != nil {
+		return t.Remote.GetLinesClear()
+	}
+	return 0
 }
