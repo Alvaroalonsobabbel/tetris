@@ -1,6 +1,7 @@
 package tetris
 
 import (
+	"context"
 	"math"
 	"slices"
 	"sync/atomic"
@@ -39,7 +40,7 @@ func (t *timeTicker) Reset(d time.Duration) { t.ticker.Reset(d) }
 type Game struct {
 	updateCh    chan *Tetris
 	actionCh    chan Action
-	doneCh      chan bool
+	cancel      context.CancelFunc
 	tetris      *Tetris
 	ticker      Ticker
 	remoteLines atomic.Int32
@@ -58,8 +59,6 @@ func (g *Game) Start() {
 	if g.tetris.GameOver {
 		g.tetris = newTetris()
 	}
-	g.ticker.Reset(g.setTime())
-	g.updateCh <- g.tetris.read()
 	go g.listen()
 }
 
@@ -68,8 +67,8 @@ func (g *Game) Stop() {
 	if !g.tetris.GameOver {
 		g.tetris.GameOver = true
 	}
-	if g.doneCh != nil {
-		g.doneCh <- true
+	if g.cancel != nil {
+		g.cancel()
 	}
 }
 
@@ -86,9 +85,11 @@ func (g *Game) RemoteLines(i int32) {
 }
 
 func (g *Game) listen() {
-	g.doneCh = make(chan bool)
-	defer close(g.doneCh)
+	var ctx context.Context
+	ctx, g.cancel = context.WithCancel(context.Background())
+	defer g.cancel()
 	g.ticker.Reset(g.setTime())
+	g.updateCh <- g.tetris.read()
 	for {
 		select {
 		case <-g.ticker.C():
@@ -104,7 +105,7 @@ func (g *Game) listen() {
 				// drop down doesn't wait for the tick to finish the round
 				g.next()
 			}
-		case <-g.doneCh:
+		case <-ctx.Done():
 			return
 		}
 		if g.tetris != nil && !g.tetris.GameOver {

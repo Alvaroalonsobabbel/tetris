@@ -2,7 +2,6 @@ package client
 
 import (
 	"log/slog"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -10,44 +9,77 @@ import (
 	"tetris/tetris"
 
 	approvals "github.com/approvals/go-approval-tests"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestRender(t *testing.T) {
 	tests := []struct {
-		name       string
-		renderFunc func(*render)
+		name string
+		do   func(*render)
 	}{
 		{
-			name:       "lobby with no data",
-			renderFunc: func(r *render) { r.lobby() },
+			name: "single player with no data renders game frame",
+			do:   func(r *render) { r.singlePlayer(nil) },
 		},
 		{
-			name:       "local receiving tetris.T",
-			renderFunc: func(r *render) { r.local(tetris.NewTestTetris(tetris.T)) },
+			name: "single player with data renders game",
+			do:   func(r *render) { r.singlePlayer(tetris.NewTestTetris(tetris.T)) },
 		},
 		{
-			name: "local receiving gameOver renders lobby",
-			renderFunc: func(r *render) {
+			name: "multiplayer with data renders game",
+			do: func(r *render) {
 				tts := tetris.NewTestTetris(tetris.T)
-				tts.GameOver = true
-				r.local(tts)
+				r.multiPlayer(&mpData{
+					remote: pb.GameMessage_builder{
+						Stack:      stack2Proto(tts),
+						LinesClear: proto.Int32(int32(tts.LinesClear)), //nolint:gosec
+						Name:       proto.String("remote"),
+					}.Build(),
+					local: tts,
+				})
 			},
 		},
+		{
+			name: "default lobby message",
+			do:   func(r *render) { r.lobby(defaultLobby()) },
+		},
+		{
+			name: "game over lobby message",
+			do:   func(r *render) { r.lobby(gameOver()) },
+		},
+		{
+			name: "you won lobby message",
+			do:   func(r *render) { r.lobby(youWon()) },
+		},
+		{
+			name: "waiting opponent lobby message",
+			do:   func(r *render) { r.lobby(waitingOpponent()) },
+		},
+		{
+			name: "waiting opponent error message",
+			do:   func(r *render) { r.lobby(waitingOpponentError()) },
+		},
+		{
+			name: "opponent left the game message",
+			do:   func(r *render) { r.lobby(opponentLeft()) },
+		},
+		{
+			name: "error lobby message",
+			do:   func(r *render) { r.lobby(errorMessage()) },
+		},
 	}
-	tmp, err := loadTemplate()
-	if err != nil {
-		t.Fatalf("failed to load template: %v", err)
-	}
+	tmpl := loadTemplate()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			w := &strings.Builder{}
 			r := &render{
 				writer:       w,
-				logger:       slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})),
-				template:     tmp,
-				templateData: &templateData{},
+				logger:       slog.Default(),
+				template:     tmpl,
+				templateData: &templateData{Name: "local"},
 			}
-			tt.renderFunc(r)
+			tt.do(r)
 			approvals.VerifyString(t, w.String())
 		})
 	}

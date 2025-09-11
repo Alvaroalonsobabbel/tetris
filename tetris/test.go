@@ -38,7 +38,6 @@ func NewTestGame(t *Tetris) (*Game, *MockTicker) {
 	return &Game{
 		updateCh: make(chan *Tetris),
 		actionCh: make(chan Action),
-		doneCh:   make(chan bool),
 		tetris:   t,
 		ticker:   ticker,
 	}, ticker
