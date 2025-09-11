@@ -60,6 +60,10 @@ func TestRender(t *testing.T) {
 			do:   func(r *render) { r.lobby(waitingOpponentError()) },
 		},
 		{
+			name: "opponent left the game message",
+			do:   func(r *render) { r.lobby(opponentLeft()) },
+		},
+		{
 			name: "error lobby message",
 			do:   func(r *render) { r.lobby(errorMessage()) },
 		},
