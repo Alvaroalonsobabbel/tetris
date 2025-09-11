@@ -32,7 +32,7 @@ func TestRender(t *testing.T) {
 				r.multiPlayer(&mpData{
 					remote: pb.GameMessage_builder{
 						Stack:      stack2Proto(tts),
-						LinesClear: proto.Int32(int32(tts.LinesClear)),
+						LinesClear: proto.Int32(int32(tts.LinesClear)), //nolint:gosec
 						Name:       proto.String("remote"),
 					}.Build(),
 					local: tts,
