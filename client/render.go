@@ -260,6 +260,12 @@ func waitingOpponent() msgSetter {
 	}
 }
 
+func waitingOpponentError() msgSetter {
+	return func(w io.Writer) {
+		fmt.Fprint(w, "\033[11;9H|   there is no one to play with :(    |\033[13;9H|      (p)lay   (o)nline   (q)uit      |")
+	}
+}
+
 func errorMessage() msgSetter {
 	return func(w io.Writer) {
 		fmt.Fprint(w, "\033[11;9H|      oops! something went wrong      |\033[13;9H|      (p)lay   (o)nline   (q)uit      |")

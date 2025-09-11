@@ -56,6 +56,10 @@ func TestRender(t *testing.T) {
 			do:   func(r *render) { r.lobby(waitingOpponent()) },
 		},
 		{
+			name: "waiting opponent error message",
+			do:   func(r *render) { r.lobby(waitingOpponentError()) },
+		},
+		{
 			name: "error lobby message",
 			do:   func(r *render) { r.lobby(errorMessage()) },
 		},
