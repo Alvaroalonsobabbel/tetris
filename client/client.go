@@ -209,13 +209,11 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 			if err != nil {
 				if err == io.EOF {
 					c.logger.Debug("stream.Recv() closed with EOF", slog.String("msg", err.Error()))
-					c.render.lobby(errorMessage())
 					return
 				}
 				st, ok := status.FromError(err)
 				if ok && st.Code() == codes.Canceled { //nolint: gocritic
 					c.logger.Debug("stream.Recv() closed with Cancel", slog.String("msg", st.Message()))
-					c.render.lobby(errorMessage())
 				} else if ok && st.Code() == codes.DeadlineExceeded {
 					c.logger.Debug("stream.Recv() closed with DeadlineExceeded", slog.String("msg", st.Message()))
 					c.render.lobby(waitingOpponentError())
@@ -298,7 +296,7 @@ start:
 			}
 		case <-ctx.Done():
 			c.logger.Debug("listenOnline ctx.Done() was closed")
-			c.render.lobby(youWon()) // TODO: change to opponent left the game
+			c.render.lobby(opponentLeft())
 			return
 		}
 	}
