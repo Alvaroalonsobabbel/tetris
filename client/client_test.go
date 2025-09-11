@@ -6,7 +6,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"tetris/pb"
 	"tetris/tetris"
 	"time"
 
@@ -28,19 +27,14 @@ func (m *mockTetris) RemoteLines(int32)                {}
 func (m *mockTetris) sendGameOver()                    { m.updateCh <- &tetris.Tetris{GameOver: true} }
 
 type mockRender struct {
-	lobbyCount  int
-	localCount  int
-	remoteCount int
+	lobbyCount        int
+	singlePlayerCount int
+	multiPlayerCount  int
 }
 
-func (m *mockRender) remote(*pb.GameMessage) { m.remoteCount++ }
-func (m *mockRender) reset()                 {}
-func (m *mockRender) local(t *tetris.Tetris) {
-	m.localCount++
-	if t != nil && t.GameOver {
-		m.lobbyCount++
-	}
-}
+func (m *mockRender) multiPlayer(*mpData)           { m.multiPlayerCount++ }
+func (m *mockRender) lobby(msgSetter)               { m.lobbyCount++ }
+func (m *mockRender) singlePlayer(t *tetris.Tetris) { m.singlePlayerCount++ }
 
 func TestClient(t *testing.T) {
 	render := &mockRender{}
@@ -69,8 +63,8 @@ func TestClient(t *testing.T) {
 	if cl.state.get() != playing {
 		t.Errorf("wanted client state to be 'playing' after 'p' key press")
 	}
-	if render.localCount != wantLocalCount {
-		t.Errorf("wanted render.local() to be called once, got %d", render.localCount)
+	if render.singlePlayerCount != wantLocalCount {
+		t.Errorf("wanted render.local() to be called once, got %d", render.singlePlayerCount)
 	}
 
 	// while in game, keys should direct to tetris actions.
@@ -94,8 +88,8 @@ func TestClient(t *testing.T) {
 		t.Run(fmt.Sprintf("key %v", a.key), func(t *testing.T) {
 			kCh <- a.key
 			time.Sleep(10 * time.Millisecond)
-			if render.localCount != wantLocalCount {
-				t.Errorf("wanted render.local() to be %d times, got %d", wantLocalCount, render.localCount)
+			if render.singlePlayerCount != wantLocalCount {
+				t.Errorf("wanted render.local() to be %d times, got %d", wantLocalCount, render.singlePlayerCount)
 			}
 			if tts.action != a.action {
 				t.Errorf("wanted action %v, got %v", a.action, tts.action)
@@ -107,10 +101,10 @@ func TestClient(t *testing.T) {
 	wantLocalCount++
 	tts.sendGameOver()
 	time.Sleep(10 * time.Millisecond)
-	if render.localCount != wantLocalCount {
-		t.Errorf("wanted render.local() to be %d times, got %d", wantLocalCount, render.localCount)
+	if render.singlePlayerCount != wantLocalCount {
+		t.Errorf("wanted render.local() to be %d times, got %d", wantLocalCount, render.singlePlayerCount)
 	}
-	if render.lobbyCount != 1 {
+	if render.lobbyCount != 2 {
 		t.Errorf("wanted render.lobby() to be called 2 times, got %d", render.lobbyCount)
 	}
 	if cl.state.get() != lobby {

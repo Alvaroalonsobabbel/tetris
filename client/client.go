@@ -51,9 +51,9 @@ type tetrisGame interface {
 }
 
 type renderer interface {
-	local(*tetris.Tetris)
-	remote(*pb.GameMessage)
-	reset()
+	singlePlayer(*tetris.Tetris)
+	multiPlayer(*mpData)
+	lobby(msgSetter)
 }
 
 type Client struct {
@@ -72,17 +72,13 @@ type Options struct {
 }
 
 func New(l *slog.Logger, o *Options) (*Client, error) {
-	r, err := newRender(l, o.NoGhost, o.Name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load renderer: %w", err)
-	}
 	kb, err := keyboard.GetKeys(20)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open keyboard: %w", err)
 	}
 	return &Client{
 		tetris:  tetris.NewGame(),
-		render:  r,
+		render:  newRender(l, o.NoGhost, o.Name),
 		options: o,
 		logger:  l,
 		kbCh:    kb,
@@ -91,7 +87,8 @@ func New(l *slog.Logger, o *Options) (*Client, error) {
 }
 
 func (c *Client) Start() {
-	c.render.local(nil)
+	c.render.singlePlayer(nil)
+	c.render.lobby(defaultLobby())
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go c.listenKB(&wg)
@@ -135,8 +132,7 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 			switch event.Rune {
 			case 'c':
 				cancel()
-				c.render.reset()
-				c.render.local(nil)
+				c.render.lobby(defaultLobby())
 			default:
 				continue
 			}
@@ -163,11 +159,11 @@ func (c *Client) listenKB(wg *sync.WaitGroup) {
 
 func (c *Client) listenTetris() {
 	go c.tetris.Start()
-	c.render.reset()
 	for u := range c.tetris.GetUpdate() {
-		c.render.local(u)
+		c.render.singlePlayer(u)
 		if u.GameOver {
 			c.state.set(lobby)
+			c.render.lobby(gameOver())
 			return
 		}
 	}
@@ -183,7 +179,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 	conn, err := grpc.NewClient(c.options.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		c.logger.Error("unable to create gRPC client", slog.String("error", err.Error()))
-		// TODO: render message in lobby
+		c.render.lobby(errorMessage())
 		return
 	}
 	defer func() {
@@ -194,16 +190,18 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 	stream, err := pb.NewTetrisServiceClient(conn).PlayTetris(ctx)
 	if err != nil {
 		c.logger.Error("unable to create gRPC PlayTetris stream", slog.String("error", err.Error()))
-		// TODO: render message in lobby
+		c.render.lobby(errorMessage())
 		return
 	}
 	defer stream.CloseSend() //nolint: errcheck
+	c.render.lobby(waitingOpponent())
 
 	// Set receiver channel
 	rcvCh := make(chan *pb.GameMessage)
 	doneCh := make(chan struct{})
 	go func() {
 		defer func() {
+			// TODO: change doneCh to ctx
 			doneCh <- struct{}{}
 			close(doneCh)
 			close(rcvCh)
@@ -213,15 +211,19 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 			if err != nil {
 				if err == io.EOF {
 					c.logger.Debug("stream.Recv() closed with EOF", slog.String("msg", err.Error()))
+					c.render.lobby(errorMessage())
 					return
 				}
 				st, ok := status.FromError(err)
 				if ok && st.Code() == codes.Canceled { //nolint: gocritic
 					c.logger.Debug("stream.Recv() closed with Cancel", slog.String("msg", st.Message()))
+					c.render.lobby(errorMessage())
 				} else if ok && st.Code() == codes.DeadlineExceeded {
 					c.logger.Debug("stream.Recv() closed with DeadlineExceeded", slog.String("msg", st.Message()))
+					c.render.lobby(waitingOpponentError())
 				} else {
 					c.logger.Error("stream.Recv() unable to receive message", slog.String("error", err.Error()))
+					c.render.lobby(errorMessage())
 				}
 				return
 			}
@@ -234,7 +236,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 		c.logger.Error("unable to send initial message", slog.String("error", err.Error()))
 		return
 	}
-	c.render.remote(&pb.GameMessage{})
+	c.render.multiPlayer(&mpData{remote: &pb.GameMessage{}})
 start:
 	for {
 		select {
@@ -250,7 +252,6 @@ start:
 
 	// start game
 	c.state.set(playing)
-	c.render.reset()
 	go c.tetris.Start()
 
 	for {
@@ -260,7 +261,7 @@ start:
 				c.logger.Error("listenOnline tetris update channel closed unexpectedly")
 				return
 			}
-			c.render.local(lu)
+			c.render.multiPlayer(&mpData{local: lu})
 			if err := stream.Send(pb.GameMessage_builder{
 				Name:       proto.String(c.options.Name),
 				IsGameOver: proto.Bool(lu.GameOver),
@@ -282,6 +283,7 @@ start:
 			}
 			if lu.GameOver {
 				c.logger.Debug("listenOnline closed through local.GameOver")
+				c.render.lobby(gameOver())
 				return
 			}
 		case ru, ok := <-rcvCh:
@@ -290,13 +292,15 @@ start:
 				return
 			}
 			c.tetris.RemoteLines(ru.GetLinesClear())
-			c.render.remote(ru)
+			c.render.multiPlayer(&mpData{remote: ru})
 			if ru.GetIsGameOver() {
 				c.logger.Debug("listenOnline closed through remote.GetIsGameOver()")
+				c.render.lobby(youWon())
 				return
 			}
 		case <-doneCh:
 			c.logger.Debug("listenOnline doneCh was closed")
+			c.render.lobby(youWon()) // TODO: change to opponent left the game
 			return
 		}
 	}
