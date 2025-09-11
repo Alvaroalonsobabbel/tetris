@@ -32,9 +32,9 @@ type mockRender struct {
 	multiPlayerCount  int
 }
 
-func (m *mockRender) multiPlayer(*mpData)           { m.multiPlayerCount++ }
-func (m *mockRender) lobby(msgSetter)               { m.lobbyCount++ }
-func (m *mockRender) singlePlayer(t *tetris.Tetris) { m.singlePlayerCount++ }
+func (m *mockRender) multiPlayer(*mpData)         { m.multiPlayerCount++ }
+func (m *mockRender) lobby(msgSetter)             { m.lobbyCount++ }
+func (m *mockRender) singlePlayer(*tetris.Tetris) { m.singlePlayerCount++ }
 
 func TestClient(t *testing.T) {
 	render := &mockRender{}

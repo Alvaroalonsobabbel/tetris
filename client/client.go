@@ -198,12 +198,10 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 
 	// Set receiver channel
 	rcvCh := make(chan *pb.GameMessage)
-	doneCh := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer func() {
-			// TODO: change doneCh to ctx
-			doneCh <- struct{}{}
-			close(doneCh)
+			cancel()
 			close(rcvCh)
 		}()
 		for {
@@ -244,8 +242,8 @@ start:
 			if rcv.GetIsStarted() {
 				break start
 			}
-		case <-doneCh:
-			c.logger.Debug("start for loop doneCh was closed")
+		case <-ctx.Done():
+			c.logger.Debug("start for loop ctx.Done() was closed")
 			return
 		}
 	}
@@ -298,8 +296,8 @@ start:
 				c.render.lobby(youWon())
 				return
 			}
-		case <-doneCh:
-			c.logger.Debug("listenOnline doneCh was closed")
+		case <-ctx.Done():
+			c.logger.Debug("listenOnline ctx.Done() was closed")
 			c.render.lobby(youWon()) // TODO: change to opponent left the game
 			return
 		}
