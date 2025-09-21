@@ -4,7 +4,7 @@ APP_NAME ?= tetris-server
 AWS_ENV ?= dev
 APP_VERSION ?= latest
 
-.PHONY: check test lint run-tetris build-tetris mod proto docker-build docker-push deploy-ecs
+.PHONY: check test lint run-tetris tetris-version build-tetris mod proto docker-build docker-push deploy-ecs
 
 check: lint test
 
@@ -16,7 +16,10 @@ lint:
 
 run-tetris: mod
 	@go run cmd/client/main.go
-
+	
+tetris-version: mod
+	@go run cmd/client/main.go -version
+    
 build-tetris: mod
 	@CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ./bin/tetris ./cmd/client/main.go
 	@chmod +x ./bin/tetris
