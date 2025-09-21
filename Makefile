@@ -15,10 +15,10 @@ lint:
 	@golangci-lint run
 
 run-tetris: mod
-	@go run main.go
+	@go run cmd/client/main.go
 
 build-tetris: mod
-	@CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ./bin/tetris
+	@CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ./bin/tetris ./cmd/client/main.go
 	@chmod +x ./bin/tetris
 
 run-server: mod

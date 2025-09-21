@@ -11,7 +11,7 @@ import (
 	"tetris/client"
 )
 
-const VERSION = "v0.0.12"
+const VERSION = "v0.0.13"
 
 const (
 	hideCursor = "\033[2J\033[?25l" // also clear screen
@@ -68,7 +68,7 @@ func evalOptions() {
 	flag.BoolVar(&debug, debugFlag, false, "Enables debugging into ~/.tetrisLog")
 	flag.BoolVar(&noGhost, noGhostFlag, false, "Disables Ghost Piece")
 	flag.StringVar(&name, nameFlag, "noName", "Current player's name")
-	flag.StringVar(&address, addressFlag, "127.0.0.1:9000", "Tetris server address")
+	flag.StringVar(&address, addressFlag, "127.0.0.1", "Tetris server address")
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}

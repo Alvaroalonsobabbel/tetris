@@ -23,6 +23,8 @@ const (
 	lobby clientState = iota
 	waiting
 	playing
+
+	serverPort = ":9000"
 )
 
 type state struct {
@@ -176,7 +178,7 @@ func (c *Client) listenOnlineTetris(ctx context.Context) {
 	}()
 
 	// Start connection
-	conn, err := grpc.NewClient(c.options.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(c.options.Address+serverPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		c.logger.Error("unable to create gRPC client", slog.String("error", err.Error()))
 		c.render.lobby(errorMessage())
