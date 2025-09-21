@@ -29,7 +29,7 @@ jobs:
               run: GOOS=darwin GOARCH=arm64 make build-tetris
 
             - name: Read Version
-              run: echo "VERSION=$(go run main.go -version)" >> $GITHUB_ENV
+              run: echo "VERSION=$(make tetris-version)" >> $GITHUB_ENV
 
             - name: Upload Release Asset
               uses: softprops/action-gh-release@v1
